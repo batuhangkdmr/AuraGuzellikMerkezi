@@ -33,3 +33,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# deployment packages
+deploy-package/
+deploy-package-lite/
+*.zip
