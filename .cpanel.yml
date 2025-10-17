@@ -1,0 +1,17 @@
+---
+deployment:
+  tasks:
+    # 1. Node.js paketlerini yükle (production modunda)
+    - export DEPLOYPATH=/home/bariscanyon/public_html
+    - /bin/bash -c "cd $DEPLOYPATH && npm install --production"
+    
+    # 2. .env dosyasını oluştur (eğer yoksa)
+    - /bin/bash -c "cd $DEPLOYPATH && if [ ! -f .env ]; then cp env-template.txt .env 2>/dev/null || echo 'env-template.txt not found'; fi"
+    
+    # 3. Next.js build yap
+    - /bin/bash -c "cd $DEPLOYPATH && npm run build"
+    
+    # 4. Dosya izinlerini ayarla
+    - /bin/bash -c "chmod -R 755 $DEPLOYPATH/.next"
+    - /bin/bash -c "chmod 644 $DEPLOYPATH/package.json"
+
