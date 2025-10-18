@@ -1,7 +1,7 @@
 export default function AdminDashboard() {
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-8 text-gray-900">Dashboard</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow">
@@ -27,12 +27,12 @@ export default function AdminDashboard() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Son Randevular</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">Son Randevular</h2>
           <p className="text-gray-500">Henüz randevu yok...</p>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Son Blog Yazıları</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">Son Blog Yazıları</h2>
           <p className="text-gray-500">Henüz blog yazısı yok...</p>
         </div>
       </div>

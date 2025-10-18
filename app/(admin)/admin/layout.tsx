@@ -1,10 +1,15 @@
 import Link from 'next/link';
+import { getCurrentUser } from '@/app/auth/actions';
+import LogoutButton from './LogoutButton';
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Mevcut kullanıcıyı al
+  const user = await getCurrentUser();
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Admin Navbar */}
@@ -15,7 +20,7 @@ export default function AdminLayout({
               Aura Admin Panel
             </Link>
             
-            <div className="flex space-x-6">
+            <div className="flex items-center space-x-6">
               <Link href="/admin" className="hover:text-pink-400 transition">
                 Dashboard
               </Link>
@@ -31,6 +36,14 @@ export default function AdminLayout({
               <Link href="/" className="hover:text-pink-400 transition">
                 Siteye Dön
               </Link>
+              
+              {/* User Info & Logout */}
+              <div className="flex items-center space-x-4 ml-4 pl-4 border-l border-gray-700">
+                <span className="text-sm text-gray-300">
+                  👤 {user?.username}
+                </span>
+                <LogoutButton />
+              </div>
             </div>
           </div>
         </div>

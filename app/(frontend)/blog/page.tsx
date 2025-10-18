@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import BlogRepository from '@/lib/repositories/BlogRepository';
 
+// Force dynamic rendering - yeni blogları hemen göster
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function BlogPage() {
   const blogs = await BlogRepository.findPublished();
 
