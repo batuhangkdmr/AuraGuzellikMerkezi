@@ -57,7 +57,13 @@ export async function createToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): Pro
 export async function verifyToken(token: string): Promise<JwtPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecretKey());
-    return payload as JwtPayload;
+    
+    // Jose's JWTPayload'ı bizim custom JwtPayload tipine dönüştür
+    if (payload && typeof payload === 'object' && 'userId' in payload) {
+      return payload as unknown as JwtPayload;
+    }
+    
+    return null;
   } catch (error) {
     console.error('JWT verify error:', error);
     return null;
