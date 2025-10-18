@@ -2,6 +2,10 @@ import Link from 'next/link';
 import { getBlogs } from './actions';
 import DeleteButton from './DeleteButton';
 
+// Force dynamic rendering - cache'i devre dışı bırak
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function AdminBlogPage() {
   const result = await getBlogs();
   const blogs = result.success ? result.data : [];
@@ -9,7 +13,7 @@ export default async function AdminBlogPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Blog Yönetimi</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Blog Yönetimi</h1>
         <Link 
           href="/admin/blog/yeni"
           className="bg-pink-600 text-white px-6 py-2 rounded-lg hover:bg-pink-700 transition"
@@ -46,7 +50,7 @@ export default async function AdminBlogPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 font-medium">{blog.title}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900">{blog.title}</td>
                   <td className="px-6 py-4">
                     {blog.published ? (
                       <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">

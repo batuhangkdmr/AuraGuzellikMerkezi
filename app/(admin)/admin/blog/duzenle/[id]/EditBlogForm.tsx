@@ -48,7 +48,7 @@ export default function EditBlogForm({ blog }: EditBlogFormProps) {
           name="title"
           required
           defaultValue={blog.title}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent text-gray-900"
         />
       </div>
       
@@ -60,7 +60,7 @@ export default function EditBlogForm({ blog }: EditBlogFormProps) {
           name="excerpt"
           rows={2}
           defaultValue={blog.excerpt || ''}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent text-gray-900"
         ></textarea>
       </div>
       
@@ -78,7 +78,7 @@ export default function EditBlogForm({ blog }: EditBlogFormProps) {
           required
           rows={10}
           defaultValue={blog.content}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent text-gray-900"
         ></textarea>
       </div>
       

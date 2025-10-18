@@ -1,6 +1,10 @@
 import BlogRepository from '@/lib/repositories/BlogRepository';
 import { notFound } from 'next/navigation';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function BlogDetayPage({ params }: { params: { slug: string } }) {
   // EF: context.Blogs.FirstOrDefaultAsync(b => b.Slug == slug && b.Published)
   const blog = await BlogRepository.findBySlug(params.slug);
