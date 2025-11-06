@@ -164,14 +164,7 @@ export default function ImageUpload({ value, onChange, disabled }: ImageUploadPr
               resourceType: 'image',
               clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
               maxImageFileSize: 10000000,
-              folder: 'aura-guzellik/blogs',
-              transformation: [{
-                width: 1200,
-                height: 800,
-                crop: 'limit',
-                quality: 'auto:good',
-                fetch_format: 'auto'
-              }]
+              folder: 'aura-guzellik/blogs'
             }}
           >
             {({ open }) => (
