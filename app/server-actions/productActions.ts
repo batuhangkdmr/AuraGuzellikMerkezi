@@ -12,7 +12,7 @@ const createProductSchema = z.object({
   description: z.string().min(1, 'Açıklama gereklidir'),
   price: z.number().positive('Fiyat pozitif olmalıdır'),
   stock: z.number().int().min(0, 'Stok negatif olamaz'),
-  images: z.array(z.string().url()).optional(),
+  images: z.array(z.string().url()).default([]),
 });
 
 const updateProductSchema = createProductSchema.partial();
@@ -74,6 +74,34 @@ export async function getProductBySlug(slug: string) {
 }
 
 /**
+ * Get product by ID (public)
+ */
+export async function getProductById(id: number) {
+  try {
+    const product = await ProductRepository.findById(id);
+    if (!product) {
+      return {
+        success: false,
+        error: 'Ürün bulunamadı',
+      };
+    }
+    return {
+      success: true,
+      data: {
+        ...product,
+        images: ProductRepository.parseImages(product.images),
+      },
+    };
+  } catch (error) {
+    console.error('Get product error:', error);
+    return {
+      success: false,
+      error: 'Ürün yüklenirken bir hata oluştu',
+    };
+  }
+}
+
+/**
  * Create product (admin only)
  */
 export async function createProduct(formData: FormData): Promise<ActionResponse<{ id: number }>> {
@@ -81,16 +109,61 @@ export async function createProduct(formData: FormData): Promise<ActionResponse<
     // Require admin
     await requireUser('ADMIN');
 
+    // Get images from formData
+    const imagesData = formData.get('images');
+    let imagesArray: string[] = [];
+    
+    if (imagesData) {
+      try {
+        const parsed = typeof imagesData === 'string' 
+          ? JSON.parse(imagesData) 
+          : imagesData;
+        imagesArray = Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.error('Error parsing images JSON:', error, 'Raw data:', imagesData);
+        imagesArray = [];
+      }
+    }
+
+    // Debug: Log received images
+    console.log('Received images in createProduct:', imagesArray);
+    console.log('Images data type:', typeof imagesData);
+    console.log('Images data:', imagesData);
+
     const rawData = {
       name: formData.get('name') as string,
       slug: formData.get('slug') as string,
       description: formData.get('description') as string,
       price: parseFloat(formData.get('price') as string),
       stock: parseInt(formData.get('stock') as string, 10),
-      images: formData.get('images') ? JSON.parse(formData.get('images') as string) : [],
+      images: imagesArray.length > 0 ? imagesArray : [], // Ensure it's always an array
     };
 
     const validated = createProductSchema.parse(rawData);
+    
+    // Debug: Log validated images
+    console.log('Validated images:', validated.images);
+    console.log('Validated images length:', validated.images?.length || 0);
+
+    // Check if slug already exists
+    const existingProduct = await ProductRepository.findBySlug(validated.slug);
+    if (existingProduct) {
+      return {
+        success: false,
+        error: 'Bu slug zaten kullanılıyor. Lütfen farklı bir slug kullanın.',
+      };
+    }
+
+    // Convert images array to JSON string for database storage
+    // Always save images, even if empty array (store as empty array JSON, not null)
+    const imagesToSave = validated.images || [];
+    const imagesJson = imagesToSave.length > 0
+      ? ProductRepository.stringifyImages(imagesToSave)
+      : null; // Store null if empty array (database allows null)
+
+    // Debug: Log images JSON before saving
+    console.log('Images to save:', imagesToSave);
+    console.log('Images JSON to save:', imagesJson);
 
     const product = await ProductRepository.create({
       name: validated.name,
@@ -98,8 +171,11 @@ export async function createProduct(formData: FormData): Promise<ActionResponse<
       description: validated.description,
       price: validated.price,
       stock: validated.stock,
-      images: validated.images ? ProductRepository.stringifyImages(validated.images) : null,
+      images: imagesJson,
     });
+    
+    // Debug: Log created product
+    console.log('Created product:', product);
 
     return {
       success: true,
@@ -112,6 +188,15 @@ export async function createProduct(formData: FormData): Promise<ActionResponse<
         error: error.errors[0].message,
       };
     }
+    
+    // Handle unique constraint violation
+    if (error && typeof error === 'object' && 'number' in error && error.number === 2627) {
+      return {
+        success: false,
+        error: 'Bu slug zaten kullanılıyor. Lütfen farklı bir slug kullanın.',
+      };
+    }
+    
     console.error('Create product error:', error);
     return {
       success: false,
@@ -131,15 +216,47 @@ export async function updateProduct(
     // Require admin
     await requireUser('ADMIN');
 
+    // Get images from formData
+    const imagesData = formData.get('images');
+    let imagesArray: string[] = [];
+    
+    if (imagesData) {
+      try {
+        const parsed = typeof imagesData === 'string' 
+          ? JSON.parse(imagesData) 
+          : imagesData;
+        imagesArray = Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.error('Error parsing images JSON in updateProduct:', error, 'Raw data:', imagesData);
+        imagesArray = [];
+      }
+    }
+
+    // Debug: Log received images
+    console.log('Received images in updateProduct:', imagesArray);
+
     const rawData: any = {};
     if (formData.get('name')) rawData.name = formData.get('name') as string;
     if (formData.get('slug')) rawData.slug = formData.get('slug') as string;
     if (formData.get('description')) rawData.description = formData.get('description') as string;
     if (formData.get('price')) rawData.price = parseFloat(formData.get('price') as string);
     if (formData.get('stock')) rawData.stock = parseInt(formData.get('stock') as string, 10);
-    if (formData.get('images')) rawData.images = JSON.parse(formData.get('images') as string);
+    if (imagesArray.length > 0 || formData.get('images')) {
+      rawData.images = imagesArray.length > 0 ? imagesArray : [];
+    }
 
     const validated = updateProductSchema.parse(rawData);
+
+    // Check if slug is being updated and if it already exists (excluding current product)
+    if (validated.slug) {
+      const existingProduct = await ProductRepository.findBySlug(validated.slug);
+      if (existingProduct && existingProduct.id !== id) {
+        return {
+          success: false,
+          error: 'Bu slug zaten başka bir ürün tarafından kullanılıyor. Lütfen farklı bir slug kullanın.',
+        };
+      }
+    }
 
     const updates: any = {};
     if (validated.name) updates.name = validated.name;
@@ -148,7 +265,12 @@ export async function updateProduct(
     if (validated.price !== undefined) updates.price = validated.price;
     if (validated.stock !== undefined) updates.stock = validated.stock;
     if (validated.images !== undefined) {
-      updates.images = ProductRepository.stringifyImages(validated.images);
+      const imagesToSave = validated.images || [];
+      updates.images = imagesToSave.length > 0
+        ? ProductRepository.stringifyImages(imagesToSave)
+        : null;
+      console.log('Update images to save:', imagesToSave);
+      console.log('Update images JSON:', updates.images);
     }
 
     const product = await ProductRepository.update(id, updates);
@@ -170,6 +292,15 @@ export async function updateProduct(
         error: error.errors[0].message,
       };
     }
+    
+    // Handle unique constraint violation
+    if (error && typeof error === 'object' && 'number' in error && error.number === 2627) {
+      return {
+        success: false,
+        error: 'Bu slug zaten kullanılıyor. Lütfen farklı bir slug kullanın.',
+      };
+    }
+    
     console.error('Update product error:', error);
     return {
       success: false,

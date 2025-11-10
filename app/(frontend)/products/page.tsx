@@ -31,7 +31,7 @@ export default async function ProductsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {products.map((product) => {
               const images = product.images || [];
-              const mainImage = images[0] || 'https://via.placeholder.com/400x300?text=No+Image';
+              const mainImage = images[0] || '/placeholder-image.svg';
 
               return (
                 <Link

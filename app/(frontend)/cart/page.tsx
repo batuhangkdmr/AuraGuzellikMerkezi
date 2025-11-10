@@ -71,7 +71,7 @@ export default function CartPage() {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {items.map((item) => {
-              const mainImage = item.product.images[0] || 'https://via.placeholder.com/200x200?text=No+Image';
+              const mainImage = item.product.images[0] || '/placeholder-image.svg';
 
               return (
                 <div

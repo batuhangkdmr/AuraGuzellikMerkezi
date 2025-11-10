@@ -75,7 +75,7 @@ export default async function AdminProductsPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {products.map((product) => {
                   const images = product.images || [];
-                  const mainImage = images[0] || 'https://via.placeholder.com/100x100?text=No+Image';
+                  const mainImage = images[0] || '/placeholder-image.svg';
 
                   return (
                     <tr key={product.id} className="hover:bg-gray-50">
