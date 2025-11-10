@@ -28,6 +28,12 @@ export default function RegisterForm() {
 
     formData.set('role', role);
 
+    // If role is USER, remove secretKey from formData (if it exists)
+    // This ensures secretKey is not sent when user selects USER role
+    if (role === UserRole.USER) {
+      formData.delete('secretKey');
+    }
+
     const result = await registerUser(formData);
 
     if (result.success) {

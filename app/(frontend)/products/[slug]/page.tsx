@@ -16,7 +16,7 @@ export default async function ProductDetailPage({
 
   const product = result.data;
   const images = product.images || [];
-  const mainImage = images[0] || 'https://via.placeholder.com/800x600?text=No+Image';
+  const mainImage = images[0] || '/placeholder-image.svg';
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">

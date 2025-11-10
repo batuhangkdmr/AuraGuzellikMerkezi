@@ -4,12 +4,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createProduct } from '@/app/server-actions/productActions';
 import Link from 'next/link';
+import ImageUpload from '@/components/ImageUpload';
+import { generateSlug } from '@/lib/utils/slug';
 
 export default function NewProductPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [slug, setSlug] = useState('');
+  const [isSlugManual, setIsSlugManual] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -17,9 +21,20 @@ export default function NewProductPage() {
     setIsSubmitting(true);
 
     try {
+      // Debug: Log images before sending
+      console.log('Images state before submit:', images);
+      console.log('Images count:', images?.length || 0);
+      
       const formData = new FormData(e.currentTarget);
-      formData.append('images', JSON.stringify(images));
-
+      
+      // Explicitly set images in formData (override hidden input if needed)
+      // This ensures images are always included even if hidden input doesn't update
+      formData.set('images', JSON.stringify(images || []));
+      
+      // Debug: Log formData images
+      const formImages = formData.get('images');
+      console.log('Images from formData after set:', formImages);
+      
       const result = await createProduct(formData);
 
       if (result.success && result.data) {
@@ -32,17 +47,6 @@ export default function NewProductPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const addImage = () => {
-    const url = prompt('Görsel URL\'si girin:');
-    if (url && url.trim()) {
-      setImages([...images, url.trim()]);
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
   };
 
   return (
@@ -74,6 +78,13 @@ export default function NewProductPage() {
               id="name"
               name="name"
               required
+              onChange={(e) => {
+                // Auto-generate slug if user hasn't manually edited it
+                if (!isSlugManual) {
+                  const autoSlug = generateSlug(e.target.value);
+                  setSlug(autoSlug);
+                }
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
           </div>
@@ -87,11 +98,39 @@ export default function NewProductPage() {
               id="slug"
               name="slug"
               required
+              value={slug}
               pattern="[a-z0-9-]+"
+              onChange={(e) => {
+                setSlug(e.target.value);
+                setIsSlugManual(true);
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
               placeholder="urun-adi"
             />
-            <p className="text-sm text-gray-500 mt-1">Sadece küçük harf, rakam ve tire kullanın</p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-sm text-gray-500">
+                Sadece küçük harf, rakam ve tire kullanın
+              </p>
+              {isSlugManual && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nameInput = document.getElementById('name') as HTMLInputElement;
+                    if (nameInput) {
+                      const autoSlug = generateSlug(nameInput.value);
+                      setSlug(autoSlug);
+                      setIsSlugManual(false);
+                    }
+                  }}
+                  className="text-xs text-pink-600 hover:text-pink-700 underline"
+                >
+                  Otomatik oluştur
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-blue-600 mt-1">
+              💡 Slug, ürün adından otomatik oluşturulur. İsterseniz manuel olarak düzenleyebilirsiniz.
+            </p>
           </div>
 
           <div>
@@ -138,35 +177,19 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Görseller</label>
-            <div className="space-y-2">
-              {images.map((url, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={url}
-                    readOnly
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                  >
-                    Kaldır
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addImage}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-              >
-                + Görsel Ekle
-              </button>
-            </div>
-          </div>
+          <ImageUpload
+            images={images}
+            onImagesChange={setImages}
+            maxImages={10}
+            folder="products"
+          />
+
+          {/* Hidden input for images to ensure they are included in form submission */}
+          <input
+            type="hidden"
+            name="images"
+            value={JSON.stringify(images)}
+          />
 
           <div className="flex gap-4">
             <button

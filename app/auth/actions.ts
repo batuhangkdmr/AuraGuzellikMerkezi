@@ -41,12 +41,26 @@ const registerSchema = z
       }),
     passwordConfirm: z.string().min(8, 'Şifre tekrarı en az 8 karakter olmalıdır'),
     role: z.enum([UserRole.USER, UserRole.ADMIN]).default(UserRole.USER),
-    secretKey: z.string().optional(),
+    secretKey: z.string().optional(), // Allow undefined (null will be converted to undefined)
   })
   .refine((data) => data.password === data.passwordConfirm, {
     path: ['passwordConfirm'],
     message: 'Şifreler eşleşmiyor',
-  });
+  })
+  .refine(
+    (data) => {
+      // If role is ADMIN, secretKey must be provided and not empty
+      if (data.role === UserRole.ADMIN) {
+        return data.secretKey !== undefined && data.secretKey !== null && data.secretKey.trim().length > 0;
+      }
+      // If role is USER, secretKey is not required (can be undefined)
+      return true;
+    },
+    {
+      path: ['secretKey'],
+      message: 'Yönetici kayıt anahtarı gereklidir',
+    }
+  );
 
 const loginSchema = z.object({
   email: z.string().email('Geçerli bir e-posta adresi giriniz'),
@@ -67,13 +81,22 @@ export async function registerUser(
   formData: FormData
 ): Promise<ActionResponse<{ id: number; email: string; name: string; role: UserRole }>> {
   try {
+    const role = (formData.get('role') as UserRole) || UserRole.USER;
+    const secretKeyValue = formData.get('secretKey');
+    
+    // Convert null to undefined for USER role (field doesn't exist in form)
+    // Only include secretKey if role is ADMIN or if it's actually provided
+    const secretKey = role === UserRole.USER 
+      ? undefined 
+      : (secretKeyValue as string | null) || undefined;
+
     const rawData = {
       email: formData.get('email') as string,
       name: formData.get('name') as string,
       password: formData.get('password') as string,
       passwordConfirm: formData.get('passwordConfirm') as string,
-      role: (formData.get('role') as UserRole) || UserRole.USER,
-      secretKey: formData.get('secretKey') as string | null,
+      role,
+      secretKey, // undefined for USER, string or undefined for ADMIN
     };
 
     // Validate
