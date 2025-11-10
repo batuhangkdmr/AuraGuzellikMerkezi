@@ -1,7 +1,15 @@
 // Authentication Helper Functions
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
-import { JwtPayload } from '../models/User';
+
+// JWT Payload interface
+export interface JwtPayload {
+  userId: number;
+  email: string;
+  role: string;
+  iat?: number;
+  exp?: number;
+}
 
 // JWT Secret Key
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';

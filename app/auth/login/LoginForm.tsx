@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { login } from '../actions';
+import { loginUser } from '../actions';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -15,11 +15,17 @@ export default function LoginForm() {
     setError('');
 
     const formData = new FormData(e.currentTarget);
-    const result = await login(formData);
+    const result = await loginUser(formData);
 
     if (result.success) {
-      router.push('/admin');
-      router.refresh();
+      const role = result.data?.role;
+      // Cookie set edildikten sonra tam sayfa yenileme ile redirect yap
+      // Bu, middleware'in cookie'yi görmesini sağlar
+      if (role === 'ADMIN') {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/profile';
+      }
     } else {
       setError(result.error || 'Giriş başarısız!');
       setLoading(false);
@@ -35,21 +41,19 @@ export default function LoginForm() {
         </div>
       )}
 
-      {/* Kullanıcı Adı */}
+      {/* E-posta */}
       <div className="mb-4">
-        <label htmlFor="username" className="block text-gray-700 font-semibold mb-2">
-          Kullanıcı Adı
+        <label htmlFor="email" className="block text-gray-700 font-semibold mb-2">
+          E-posta
         </label>
         <input
-          type="text"
-          id="username"
-          name="username"
+          type="email"
+          id="email"
+          name="email"
           required
-          minLength={3}
-          maxLength={20}
           disabled={loading}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
-          placeholder="Kullanıcı adınızı girin"
+          placeholder="E-posta adresinizi girin"
         />
       </div>
 

@@ -15,8 +15,6 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-4">Hızlı Linkler</h4>
             <ul className="space-y-2">
-              <li><Link href="/hizmetlerimiz" className="text-gray-400 hover:text-pink-400">Hizmetlerimiz</Link></li>
-              <li><Link href="/blog" className="text-gray-400 hover:text-pink-400">Blog</Link></li>
               <li><Link href="/hakkimizda" className="text-gray-400 hover:text-pink-400">Hakkımızda</Link></li>
             </ul>
           </div>

@@ -24,7 +24,8 @@ export async function middleware(request: NextRequest) {
     }
 
     // Role kontrolü - sadece admin girebilir
-    if (payload.role !== 'admin') {
+    // UserRole.ADMIN = 'ADMIN' (büyük harf)
+    if (payload.role !== 'ADMIN') {
       // Yetkisiz erişim
       return NextResponse.redirect(new URL('/auth/login', request.url));
     }
@@ -40,7 +41,7 @@ export async function middleware(request: NextRequest) {
     
     if (token) {
       const payload = await verifyToken(token);
-      if (payload && payload.role === 'admin') {
+      if (payload && payload.role === 'ADMIN') {
         return NextResponse.redirect(new URL('/admin', request.url));
       }
     }

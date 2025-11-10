@@ -13,11 +13,8 @@ export default function Navbar() {
             <Link href="/" className="text-gray-700 hover:text-pink-600 transition">
               Ana Sayfa
             </Link>
-            <Link href="/hizmetlerimiz" className="text-gray-700 hover:text-pink-600 transition">
-              Hizmetlerimiz
-            </Link>
-            <Link href="/blog" className="text-gray-700 hover:text-pink-600 transition">
-              Blog
+            <Link href="/products" className="text-gray-700 hover:text-pink-600 transition">
+              Ürünler
             </Link>
             <Link href="/hakkimizda" className="text-gray-700 hover:text-pink-600 transition">
               Hakkımızda

@@ -38,11 +38,6 @@ export default function HomePage() {
               <p className="text-gray-600">Kapsamlı güzellik hizmetleri</p>
             </div>
           </div>
-          <div className="text-center mt-8">
-            <Link href="/hizmetlerimiz" className="text-pink-600 font-semibold hover:underline">
-              Tüm Hizmetleri Gör →
-            </Link>
-          </div>
         </div>
       </section>
 
