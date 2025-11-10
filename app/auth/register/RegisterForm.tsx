@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { register } from '../actions';
+import { registerUser } from '../actions';
+import { UserRole } from '@/lib/types/UserRole';
 
 export default function RegisterForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [role, setRole] = useState<UserRole>(UserRole.USER);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -15,10 +17,22 @@ export default function RegisterForm() {
     setError('');
 
     const formData = new FormData(e.currentTarget);
-    const result = await register(formData);
+
+    const password = formData.get('password') as string;
+    const passwordConfirm = formData.get('passwordConfirm') as string;
+    if (password !== passwordConfirm) {
+      setError('Şifreler eşleşmiyor');
+      setLoading(false);
+      return;
+    }
+
+    formData.set('role', role);
+
+    const result = await registerUser(formData);
 
     if (result.success) {
-      router.push('/admin');
+      const nextPath = result.data?.role === UserRole.ADMIN ? '/admin' : '/profile';
+      router.push(nextPath);
       router.refresh();
     } else {
       setError(result.error || 'Kayıt başarısız!');
@@ -35,22 +49,55 @@ export default function RegisterForm() {
         </div>
       )}
 
-      {/* Kullanıcı Adı */}
+      {/* İsim */}
       <div className="mb-4">
-        <label htmlFor="username" className="block text-gray-700 font-semibold mb-2">
-          Kullanıcı Adı
+        <label htmlFor="name" className="block text-gray-700 font-semibold mb-2">
+          Ad Soyad
         </label>
         <input
           type="text"
-          id="username"
-          name="username"
+          id="name"
+          name="name"
           required
-          minLength={3}
-          maxLength={20}
+          minLength={2}
           disabled={loading}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
-          placeholder="3-20 karakter arası"
+          placeholder="Adınızı ve soyadınızı girin"
         />
+      </div>
+
+      {/* E-posta */}
+      <div className="mb-4">
+        <label htmlFor="email" className="block text-gray-700 font-semibold mb-2">
+          E-posta
+        </label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          required
+          disabled={loading}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+          placeholder="ornek@domain.com"
+        />
+      </div>
+
+      {/* Rol Seçimi */}
+      <div className="mb-4">
+        <label htmlFor="role" className="block text-gray-700 font-semibold mb-2">
+          Rol
+        </label>
+        <select
+          id="role"
+          name="role"
+          value={role}
+          onChange={(e) => setRole(e.target.value as UserRole)}
+          disabled={loading}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+        >
+          <option value={UserRole.USER}>Kullanıcı</option>
+          <option value={UserRole.ADMIN}>Yönetici</option>
+        </select>
       </div>
 
       {/* Şifre */}
@@ -63,11 +110,14 @@ export default function RegisterForm() {
           id="password"
           name="password"
           required
-          minLength={6}
+          minLength={8}
           disabled={loading}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
-          placeholder="En az 6 karakter"
+          placeholder="En az 8 karakter, büyük harf, küçük harf ve rakam içermeli"
         />
+        <p className="text-xs text-gray-500 mt-1">
+          💡 Şifre en az 8 karakter olmalı, büyük harf, küçük harf ve rakam içermelidir.
+        </p>
       </div>
 
       {/* Şifre Tekrarı */}
@@ -80,31 +130,33 @@ export default function RegisterForm() {
           id="passwordConfirm"
           name="passwordConfirm"
           required
-          minLength={6}
+          minLength={8}
           disabled={loading}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
           placeholder="Şifrenizi tekrar girin"
         />
       </div>
 
-      {/* Kayıt Anahtarı */}
-      <div className="mb-6">
-        <label htmlFor="secretKey" className="block text-gray-700 font-semibold mb-2">
-          Kayıt Anahtarı 🔑
-        </label>
-        <input
-          type="password"
-          id="secretKey"
-          name="secretKey"
-          required
-          disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
-          placeholder="Kayıt anahtarını girin"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          💡 Kayıt anahtarını yöneticinizden alın
-        </p>
-      </div>
+      {/* Kayıt Anahtarı (sadece admin için) */}
+      {role === UserRole.ADMIN && (
+        <div className="mb-6">
+          <label htmlFor="secretKey" className="block text-gray-700 font-semibold mb-2">
+            Yönetici Kayıt Anahtarı 🔑
+          </label>
+          <input
+            type="password"
+            id="secretKey"
+            name="secretKey"
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+            placeholder="Yönetici anahtarını girin"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            💡 Admin hesabı oluşturmak için yöneticiden aldığınız anahtarı girmeniz gerekir.
+          </p>
+        </div>
+      )}
 
       {/* Submit Button */}
       <button

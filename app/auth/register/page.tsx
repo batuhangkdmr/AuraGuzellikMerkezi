@@ -11,7 +11,7 @@ export default function RegisterPage() {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             Aura Güzellik
           </h1>
-          <p className="text-gray-600">Admin Hesabı Oluştur</p>
+          <p className="text-gray-600">Yeni kullanıcı veya yönetici hesabı oluştur</p>
         </div>
 
         {/* Register Formu */}
