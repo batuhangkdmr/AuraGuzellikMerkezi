@@ -1,12 +1,21 @@
 import { getAllProducts } from '@/app/server-actions/productActions';
+import { ProductRepository } from '@/lib/repositories/ProductRepository';
 import Link from 'next/link';
 import Image from 'next/image';
 import DeleteProductButton from './DeleteProductButton';
+import ToggleProductActiveButton from './ToggleProductActiveButton';
 
 export default async function AdminProductsPage() {
-  const result = await getAllProducts();
+  try {
+    // Admin can see all products (including inactive)
+    const products = await ProductRepository.findAll(true);
 
-  if (!result.success || !result.data) {
+    // Parse images for each product
+    const productsWithImages = products.map(p => ({
+      ...p,
+      images: ProductRepository.parseImages(p.images),
+    }));
+
     return (
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="container mx-auto px-4">
@@ -19,28 +28,8 @@ export default async function AdminProductsPage() {
               Yeni Ürün Ekle
             </Link>
           </div>
-          <p className="text-red-600">{result.error || 'Ürünler yüklenirken bir hata oluştu'}</p>
-        </div>
-      </div>
-    );
-  }
 
-  const products = result.data;
-
-  return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Ürün Yönetimi</h1>
-          <Link
-            href="/admin/products/new"
-            className="px-6 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
-          >
-            Yeni Ürün Ekle
-          </Link>
-        </div>
-
-        {products.length === 0 ? (
+          {productsWithImages.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <p className="text-gray-600 text-lg mb-4">Henüz ürün bulunmamaktadır.</p>
             <Link
@@ -68,17 +57,20 @@ export default async function AdminProductsPage() {
                     Stok
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Durum
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     İşlemler
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {products.map((product) => {
+                {productsWithImages.map((product) => {
                   const images = product.images || [];
                   const mainImage = images[0] || '/placeholder-image.svg';
 
                   return (
-                    <tr key={product.id} className="hover:bg-gray-50">
+                    <tr key={product.id} className={`hover:bg-gray-50 ${!product.isActive ? 'opacity-60' : ''}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="relative h-16 w-16">
                           <Image
@@ -108,6 +100,13 @@ export default async function AdminProductsPage() {
                           {product.stock} adet
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <ToggleProductActiveButton 
+                          productId={product.id} 
+                          isActive={product.isActive}
+                          productName={product.name}
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                         <Link
                           href={`/admin/products/${product.id}/edit`}
@@ -123,9 +122,27 @@ export default async function AdminProductsPage() {
               </tbody>
             </table>
           </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Ürün Yönetimi</h1>
+            <Link
+              href="/admin/products/new"
+              className="px-6 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+            >
+              Yeni Ürün Ekle
+            </Link>
+          </div>
+          <p className="text-red-600">Ürünler yüklenirken bir hata oluştu</p>
+        </div>
+      </div>
+    );
+  }
 }
 

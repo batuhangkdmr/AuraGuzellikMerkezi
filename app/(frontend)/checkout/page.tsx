@@ -18,6 +18,11 @@ export default function CheckoutPage() {
     city: '',
     postalCode: '',
     country: 'Türkiye',
+    // Payment information
+    cardNumber: '',
+    cardHolder: '',
+    expiryDate: '',
+    cvc: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,6 +31,33 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
+      // Validate payment fields
+      const cardNumberDigits = formData.cardNumber.replace(/\D/g, '');
+      if (cardNumberDigits.length !== 16) {
+        setError('Kart numarası 16 haneli olmalıdır');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const expiryParts = formData.expiryDate.split('/');
+      if (expiryParts.length !== 2 || expiryParts[0].length !== 2 || expiryParts[1].length !== 2) {
+        setError('Son kullanma tarihi geçerli formatta değil (AA/YY)');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (formData.cvc.length !== 3) {
+        setError('CVC 3 haneli olmalıdır');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!formData.cardHolder || formData.cardHolder.trim().length < 2) {
+        setError('Kart üzerindeki isim gereklidir');
+        setIsSubmitting(false);
+        return;
+      }
+
       const formDataObj = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
         formDataObj.append(key, value);
@@ -49,10 +81,46 @@ export default function CheckoutPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    
+    if (name === 'cardNumber') {
+      // Remove all non-digits
+      const numbers = value.replace(/\D/g, '');
+      // Limit to 16 digits
+      const limited = numbers.slice(0, 16);
+      // Format as XXXX XXXX XXXX XXXX
+      const formatted = limited.replace(/(.{4})/g, '$1 ').trim();
+      setFormData({
+        ...formData,
+        cardNumber: formatted,
+      });
+    } else if (name === 'expiryDate') {
+      // Remove all non-digits
+      const numbers = value.replace(/\D/g, '');
+      // Limit to 4 digits
+      const limited = numbers.slice(0, 4);
+      // Format as MM/YY
+      let formatted = limited;
+      if (limited.length >= 2) {
+        formatted = limited.slice(0, 2) + '/' + limited.slice(2, 4);
+      }
+      setFormData({
+        ...formData,
+        expiryDate: formatted,
+      });
+    } else if (name === 'cvc') {
+      // Remove all non-digits and limit to 3
+      const numbers = value.replace(/\D/g, '').slice(0, 3);
+      setFormData({
+        ...formData,
+        cvc: numbers,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
   };
 
   const total = getTotal();
@@ -182,6 +250,92 @@ export default function CheckoutPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
+              </div>
+
+              {/* Payment Information */}
+              <div className="border-t pt-6 mt-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Ödeme Bilgileri</h2>
+
+                <div className="mb-4">
+                  <label htmlFor="cardHolder" className="block text-gray-700 font-medium mb-2">
+                    Kart Üzerindeki İsim *
+                  </label>
+                  <input
+                    type="text"
+                    id="cardHolder"
+                    name="cardHolder"
+                    required
+                    value={formData.cardHolder}
+                    onChange={handleChange}
+                    placeholder="AD SOYAD"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 uppercase"
+                    maxLength={50}
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label htmlFor="cardNumber" className="block text-gray-700 font-medium mb-2">
+                    Kart Numarası *
+                  </label>
+                  <input
+                    type="text"
+                    id="cardNumber"
+                    name="cardNumber"
+                    required
+                    value={formData.cardNumber}
+                    onChange={handleChange}
+                    placeholder="0000 0000 0000 0000"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 font-mono text-lg tracking-wider"
+                    maxLength={19} // 16 digits + 3 spaces
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    💳 16 haneli kart numaranızı giriniz
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="expiryDate" className="block text-gray-700 font-medium mb-2">
+                      Son Kullanma Tarihi *
+                    </label>
+                    <input
+                      type="text"
+                      id="expiryDate"
+                      name="expiryDate"
+                      required
+                      value={formData.expiryDate}
+                      onChange={handleChange}
+                      placeholder="AA/YY"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 font-mono"
+                      maxLength={5}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">AA/YY formatında</p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="cvc" className="block text-gray-700 font-medium mb-2">
+                      CVC *
+                    </label>
+                    <input
+                      type="text"
+                      id="cvc"
+                      name="cvc"
+                      required
+                      value={formData.cvc}
+                      onChange={handleChange}
+                      placeholder="000"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 font-mono"
+                      maxLength={3}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">3 haneli güvenlik kodu</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    🔒 Ödeme bilgileriniz güvenli bir şekilde işlenmektedir. Test modunda herhangi bir gerçek ödeme alınmayacaktır.
+                  </p>
+                </div>
               </div>
 
               <button

@@ -24,7 +24,8 @@ export default function LoginForm() {
       if (role === 'ADMIN') {
         window.location.href = '/admin';
       } else {
-        window.location.href = '/profile';
+        // USER role için ana sayfaya yönlendir
+        window.location.href = '/';
       }
     } else {
       setError(result.error || 'Giriş başarısız!');

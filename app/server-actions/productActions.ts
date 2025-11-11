@@ -24,11 +24,11 @@ export interface ActionResponse<T = void> {
 }
 
 /**
- * Get all products (public)
+ * Get all products (public - only active and in stock)
  */
 export async function getAllProducts() {
   try {
-    const products = await ProductRepository.findAll();
+    const products = await ProductRepository.findAll(false); // Only active products
     return {
       success: true,
       data: products.map(p => ({
@@ -46,11 +46,11 @@ export async function getAllProducts() {
 }
 
 /**
- * Get product by slug (public)
+ * Get product by slug (public - only active and in stock)
  */
 export async function getProductBySlug(slug: string) {
   try {
-    const product = await ProductRepository.findBySlug(slug);
+    const product = await ProductRepository.findBySlug(slug, false); // Only active products
     if (!product) {
       return {
         success: false,
@@ -74,11 +74,12 @@ export async function getProductBySlug(slug: string) {
 }
 
 /**
- * Get product by ID (public)
+ * Get product by ID (admin can see inactive products)
  */
 export async function getProductById(id: number) {
   try {
-    const product = await ProductRepository.findById(id);
+    // Admin can see inactive products, so include them
+    const product = await ProductRepository.findById(id, true);
     if (!product) {
       return {
         success: false,
@@ -333,6 +334,34 @@ export async function deleteProduct(id: number): Promise<ActionResponse> {
     return {
       success: false,
       error: 'Ürün silinirken bir hata oluştu',
+    };
+  }
+}
+
+/**
+ * Toggle product active status (admin only)
+ */
+export async function toggleProductActive(id: number, isActive: boolean): Promise<ActionResponse> {
+  try {
+    // Require admin
+    await requireUser('ADMIN');
+
+    const updated = await ProductRepository.update(id, { isActive });
+    if (!updated) {
+      return {
+        success: false,
+        error: 'Ürün bulunamadı',
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Toggle product active error:', error);
+    return {
+      success: false,
+      error: 'Ürün durumu güncellenirken bir hata oluştu',
     };
   }
 }

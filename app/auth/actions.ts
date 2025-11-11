@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { UserRepository } from '@/lib/repositories/UserRepository';
 import { UserRole } from '@/lib/types/UserRole';
+import { requireUser } from '@/lib/requireUser';
 import { 
   hashPassword, 
   comparePassword, 
@@ -282,5 +283,186 @@ export async function getCurrentUser(): Promise<{ id: number; email: string; nam
   } catch (error) {
     console.error('getCurrentUser error:', error);
     return null;
+  }
+}
+
+// Validation schema for profile update
+const updateProfileSchema = z
+  .object({
+    name: z.string().min(2, 'İsim en az 2 karakter olmalıdır').optional(),
+    email: z.string().email('Geçerli bir e-posta adresi giriniz').optional(),
+    currentPassword: z.string().optional(),
+    newPassword: z
+      .string()
+      .min(8, 'Şifre en az 8 karakter olmalıdır')
+      .regex(/[A-Z]/, 'Şifre en az bir büyük harf içermelidir')
+      .regex(/[a-z]/, 'Şifre en az bir küçük harf içermelidir')
+      .regex(/[0-9]/, 'Şifre en az bir rakam içermelidir')
+      .optional(),
+    confirmPassword: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If newPassword is provided, confirmPassword must match
+      if (data.newPassword && data.newPassword.length > 0) {
+        return data.newPassword === data.confirmPassword;
+      }
+      return true;
+    },
+    {
+      path: ['confirmPassword'],
+      message: 'Yeni şifreler eşleşmiyor',
+    }
+  )
+  .refine(
+    (data) => {
+      // If newPassword is provided, currentPassword must be provided
+      if (data.newPassword && data.newPassword.length > 0) {
+        return data.currentPassword && data.currentPassword.length > 0;
+      }
+      return true;
+    },
+    {
+      path: ['currentPassword'],
+      message: 'Şifre değiştirmek için mevcut şifrenizi girmelisiniz',
+    }
+  );
+
+/**
+ * Kullanıcı profilini güncelle
+ */
+export async function updateUserProfile(
+  formData: FormData
+): Promise<ActionResponse<{ id: number; email: string; name: string }>> {
+  try {
+    // Require authentication
+    const currentUser = await requireUser();
+
+    const rawData = {
+      name: formData.get('name') as string | null,
+      email: formData.get('email') as string | null,
+      currentPassword: formData.get('currentPassword') as string | null,
+      newPassword: formData.get('newPassword') as string | null,
+      confirmPassword: formData.get('confirmPassword') as string | null,
+    };
+
+    // Filter out empty strings and convert to undefined
+    const cleanData: any = {};
+    if (rawData.name && rawData.name.trim()) cleanData.name = rawData.name.trim();
+    if (rawData.email && rawData.email.trim()) cleanData.email = rawData.email.trim();
+    if (rawData.currentPassword && rawData.currentPassword.trim())
+      cleanData.currentPassword = rawData.currentPassword.trim();
+    if (rawData.newPassword && rawData.newPassword.trim()) cleanData.newPassword = rawData.newPassword.trim();
+    if (rawData.confirmPassword && rawData.confirmPassword.trim())
+      cleanData.confirmPassword = rawData.confirmPassword.trim();
+
+    // Validate
+    const validated = updateProfileSchema.parse(cleanData);
+
+    // Get current user from database
+    const user = await UserRepository.findById(currentUser.id);
+    if (!user) {
+      return {
+        success: false,
+        error: 'Kullanıcı bulunamadı',
+      };
+    }
+
+    // Check if email is being changed and if it already exists
+    if (validated.email && validated.email !== user.email) {
+      const existingUser = await UserRepository.findByEmail(validated.email);
+      if (existingUser && existingUser.id !== currentUser.id) {
+        return {
+          success: false,
+          error: 'Bu e-posta adresi zaten kullanılıyor',
+        };
+      }
+    }
+
+    // If password is being changed, verify current password
+    if (validated.newPassword && validated.newPassword.length > 0) {
+      if (!validated.currentPassword) {
+        return {
+          success: false,
+          error: 'Mevcut şifrenizi girmelisiniz',
+        };
+      }
+
+      const isValidPassword = await comparePassword(validated.currentPassword, user.passwordHash);
+      if (!isValidPassword) {
+        return {
+          success: false,
+          error: 'Mevcut şifre hatalı',
+        };
+      }
+
+      // Hash new password
+      const newPasswordHash = await hashPassword(validated.newPassword);
+
+      // Update user with new password
+      const updates: any = {};
+      if (validated.name) updates.name = validated.name;
+      if (validated.email) updates.email = validated.email;
+      updates.passwordHash = newPasswordHash;
+
+      const updatedUser = await UserRepository.update(currentUser.id, updates);
+      if (!updatedUser) {
+        return {
+          success: false,
+          error: 'Profil güncellenirken bir hata oluştu',
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+        },
+      };
+    } else {
+      // Update user without changing password
+      const updates: any = {};
+      if (validated.name) updates.name = validated.name;
+      if (validated.email) updates.email = validated.email;
+
+      if (Object.keys(updates).length === 0) {
+        return {
+          success: false,
+          error: 'Güncellenecek bir alan bulunamadı',
+        };
+      }
+
+      const updatedUser = await UserRepository.update(currentUser.id, updates);
+      if (!updatedUser) {
+        return {
+          success: false,
+          error: 'Profil güncellenirken bir hata oluştu',
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+        },
+      };
+    }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: error.errors[0].message,
+      };
+    }
+
+    console.error('Update profile error:', error);
+    return {
+      success: false,
+      error: 'Profil güncellenirken bir hata oluştu',
+    };
   }
 }

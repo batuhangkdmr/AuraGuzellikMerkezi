@@ -18,7 +18,7 @@ export default async function ProfilePage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Hesap Bilgileri</h2>
-              <div className="space-y-2">
+              <div className="space-y-2 mb-4">
                 <p className="text-gray-700">
                   <span className="font-medium">Ad:</span> {user.name}
                 </p>
@@ -29,6 +29,12 @@ export default async function ProfilePage() {
                   <span className="font-medium">Rol:</span> {user.role === 'ADMIN' ? 'Admin' : 'Kullanıcı'}
                 </p>
               </div>
+              <Link
+                href="/profile/settings"
+                className="block w-full text-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+              >
+                ⚙️ Ayarları Düzenle
+              </Link>
             </div>
           </div>
 
