@@ -1,4 +1,5 @@
 // Authentication Helper Functions
+// Note: bcryptjs is not Edge Runtime compatible, but this file is only used in Server Actions (Node.js Runtime)
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 
