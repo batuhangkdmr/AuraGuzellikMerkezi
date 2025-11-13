@@ -1,6 +1,7 @@
 import { requireUser } from '@/lib/requireUser';
 import { getUserOrders } from '@/app/server-actions/orderActions';
 import Link from 'next/link';
+import { formatDateToTurkey } from '@/lib/utils/dateFormatter';
 
 export default async function ProfilePage() {
   const user = await requireUser();
@@ -84,13 +85,7 @@ export default async function ProfilePage() {
                               Sipariş #{order.id}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {new Date(order.createdAt).toLocaleDateString('tr-TR', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                              {formatDateToTurkey(order.createdAt)}
                             </p>
                           </div>
                           <div className="text-right">

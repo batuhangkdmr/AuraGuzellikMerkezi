@@ -1,12 +1,8 @@
 import { executeQuery, executeQueryOne, executeNonQuery, executeTransaction, sql } from '../db';
+import { OrderStatus } from '../types/OrderStatus';
 
-export enum OrderStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  SHIPPED = 'SHIPPED',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED'
-}
+// Re-export OrderStatus for backward compatibility
+export { OrderStatus };
 
 export interface ShippingAddress {
   fullName: string;
@@ -23,6 +19,7 @@ export interface Order {
   total: number;
   status: OrderStatus;
   shippingAddressJson: string;
+  trackingNumber: string | null;
   createdAt: Date;
   updatedAt: Date;
   confirmedAt: Date | null;
@@ -44,14 +41,37 @@ export interface OrderWithItems extends Order {
 export class OrderRepository {
   // Find order by ID
   static async findById(id: number): Promise<OrderWithItems | null> {
-    const order = await executeQueryOne<Order>(
+    // Get dates as strings to avoid timezone conversion issues
+    const order = await executeQueryOne<any>(
       `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
-              created_at as createdAt, updated_at as updatedAt, confirmed_at as confirmedAt
+              tracking_number as trackingNumber,
+              CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+              CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
+              CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
        FROM orders WHERE id = @id`,
       { id }
     );
-
+    
     if (!order) return null;
+    
+    // Parse dates manually to avoid timezone issues
+    // CONVERT format 126 returns ISO 8601: "2025-11-11T22:12:25.843"
+    const parseSqlDate = (dateStr: string | null): Date | null => {
+      if (!dateStr) return null;
+      // SQL Server CONVERT format 126 already returns with T, but ensure it's correct
+      // Parse as local time by treating it as local (no Z suffix means local time)
+      const normalized = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T');
+      return new Date(normalized);
+    };
+    
+    const orderWithDates: Order = {
+      ...order,
+      createdAt: parseSqlDate(order.createdAt)!,
+      updatedAt: parseSqlDate(order.updatedAt)!,
+      confirmedAt: parseSqlDate(order.confirmedAt),
+    };
+
+    if (!orderWithDates) return null;
 
     const items = await executeQuery<OrderItem>(
       `SELECT id, order_id as orderId, product_id as productId, 
@@ -61,30 +81,62 @@ export class OrderRepository {
     );
 
     return {
-      ...order,
+      ...orderWithDates,
       items,
     };
   }
 
   // Find orders by user ID
   static async findByUserId(userId: number): Promise<Order[]> {
-    return await executeQuery<Order>(
+    const orders = await executeQuery<any>(
       `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
-              created_at as createdAt, updated_at as updatedAt, confirmed_at as confirmedAt
+              tracking_number as trackingNumber,
+              CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+              CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
+              CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
        FROM orders WHERE user_id = @userId
        ORDER BY created_at DESC`,
       { userId }
     );
+    
+    // Parse dates manually
+    const parseSqlDate = (dateStr: string | null): Date | null => {
+      if (!dateStr) return null;
+      return new Date(dateStr.replace(' ', 'T'));
+    };
+    
+    return orders.map(order => ({
+      ...order,
+      createdAt: parseSqlDate(order.createdAt)!,
+      updatedAt: parseSqlDate(order.updatedAt)!,
+      confirmedAt: parseSqlDate(order.confirmedAt),
+    }));
   }
 
   // Find all orders (admin)
   static async findAll(): Promise<Order[]> {
-    return await executeQuery<Order>(
+    const orders = await executeQuery<any>(
       `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
-              created_at as createdAt, updated_at as updatedAt, confirmed_at as confirmedAt
+              tracking_number as trackingNumber,
+              CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+              CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
+              CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
        FROM orders
        ORDER BY created_at DESC`
     );
+    
+    // Parse dates manually
+    const parseSqlDate = (dateStr: string | null): Date | null => {
+      if (!dateStr) return null;
+      return new Date(dateStr.replace(' ', 'T'));
+    };
+    
+    return orders.map(order => ({
+      ...order,
+      createdAt: parseSqlDate(order.createdAt)!,
+      updatedAt: parseSqlDate(order.updatedAt)!,
+      confirmedAt: parseSqlDate(order.confirmedAt),
+    }));
   }
 
   // Create order with items (transaction)
@@ -142,13 +194,19 @@ export class OrderRepository {
   }
 
   // Update order status
-  static async updateStatus(id: number, status: OrderStatus): Promise<boolean> {
+  static async updateStatus(id: number, status: OrderStatus, trackingNumber?: string | null): Promise<boolean> {
     const fields: string[] = ['status = @status', 'updated_at = GETDATE()'];
     const params: Record<string, any> = { id, status };
 
     // If confirming, set confirmed_at
     if (status === OrderStatus.CONFIRMED) {
       fields.push('confirmed_at = GETDATE()');
+    }
+
+    // If tracking number is provided, update it (especially for SHIPPED status)
+    if (trackingNumber !== undefined) {
+      fields.push('tracking_number = @trackingNumber');
+      params.trackingNumber = trackingNumber || null;
     }
 
     const rowsAffected = await executeNonQuery(

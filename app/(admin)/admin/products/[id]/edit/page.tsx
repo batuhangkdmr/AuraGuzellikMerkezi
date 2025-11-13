@@ -1,24 +1,40 @@
-import { getProductBySlug } from '@/app/server-actions/productActions';
-import { notFound, redirect } from 'next/navigation';
-import EditProductForm from './EditProductForm';
+import { getCategoryTree } from '@/app/server-actions/categoryActions';
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import EditProductFormWithCategories from './EditProductFormWithCategories';
 
 export default async function EditProductPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  // For now, we'll need to get product by ID
-  // Since we don't have getProductById, we'll need to add it or use a workaround
-  // For simplicity, let's redirect to products list and add edit functionality later
-  // Actually, let me create a simple edit form that works with the product ID
-
-  const productId = parseInt(params.id, 10);
+  const { id } = await params;
+  const productId = parseInt(id, 10);
+  
   if (isNaN(productId)) {
     notFound();
   }
 
-  // We need to get product by ID - let's add that to productActions
-  // For now, let's create a form that will fetch the product client-side
-  return <EditProductForm productId={productId} />;
+  // Load categories for selection (server-side)
+  const result = await getCategoryTree(true); // Include inactive for admin
+  const categories = result.success && result.data ? result.data : [];
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Ürün Düzenle</h1>
+          <Link
+            href="/admin/products"
+            className="text-pink-600 hover:text-pink-700"
+          >
+            ← Geri Dön
+          </Link>
+        </div>
+
+        <EditProductFormWithCategories productId={productId} categories={categories} />
+      </div>
+    </div>
+  );
 }
 

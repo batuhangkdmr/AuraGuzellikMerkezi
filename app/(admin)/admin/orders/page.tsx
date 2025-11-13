@@ -1,5 +1,6 @@
 import { getAllOrders } from '@/app/server-actions/orderActions';
 import Link from 'next/link';
+import { formatDateToTurkeyShort } from '@/lib/utils/dateFormatter';
 
 export default async function AdminOrdersPage() {
   const result = await getAllOrders();
@@ -77,13 +78,7 @@ export default async function AdminOrdersPage() {
                       {order.userId}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {new Date(order.createdAt).toLocaleDateString('tr-TR', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatDateToTurkeyShort(order.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                       {order.total.toFixed(2)} ₺

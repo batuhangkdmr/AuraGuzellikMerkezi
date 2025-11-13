@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { OrderRepository, OrderStatus, ShippingAddress } from '@/lib/repositories/OrderRepository';
+import { OrderStatusHistoryRepository } from '@/lib/repositories/OrderStatusHistoryRepository';
 import { CartRepository } from '@/lib/repositories/CartRepository';
 import { ProductRepository } from '@/lib/repositories/ProductRepository';
 import { requireUser } from '@/lib/requireUser';
@@ -249,6 +250,20 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
         DELETE FROM cart_items WHERE user_id = @userId
       `);
 
+      // Create initial status history record (PENDING status when order is created)
+      const historyRequest = new sql.Request(transaction);
+      historyRequest.timeout = 30000;
+      historyRequest.input('orderId', sql.Int, orderId);
+      historyRequest.input('adminUserId', sql.Int, user.id); // User who created the order
+      historyRequest.input('oldStatus', sql.VarChar(50), null);
+      historyRequest.input('newStatus', sql.VarChar(50), OrderStatus.PENDING);
+      historyRequest.input('note', sql.NVarChar(500), 'Sipariş oluşturuldu');
+
+      await historyRequest.query(`
+        INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, note, created_at)
+        VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @note, GETDATE())
+      `);
+
       // Return order data (don't fetch from DB to avoid another query)
       return {
         id: orderId,
@@ -256,6 +271,7 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
         total,
         status: 'PENDING' as OrderStatus,
         shippingAddressJson: JSON.stringify(validatedAddress),
+        trackingNumber: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         confirmedAt: null,
@@ -336,10 +352,35 @@ export async function getOrderById(orderId: number) {
       };
     }
 
+    // Fetch product images for order items
+    const itemsWithImages = await Promise.all(
+      order.items.map(async (item) => {
+        if (item.productId) {
+          try {
+            const product = await ProductRepository.findById(item.productId, true); // Include inactive products
+            if (product) {
+              const images = ProductRepository.parseImages(product.images);
+              return {
+                ...item,
+                productImage: images[0] || '/placeholder-image.svg',
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching product ${item.productId}:`, error);
+          }
+        }
+        return {
+          ...item,
+          productImage: '/placeholder-image.svg',
+        };
+      })
+    );
+
     return {
       success: true,
       data: {
         ...order,
+        items: itemsWithImages,
         shippingAddress: OrderRepository.parseShippingAddress(order.shippingAddressJson),
       },
     };
@@ -353,23 +394,46 @@ export async function getOrderById(orderId: number) {
 }
 
 /**
- * Update order status (admin only)
+ * Update order status with history tracking (admin only)
  */
 export async function updateOrderStatus(
   orderId: number,
-  status: OrderStatus
+  status: OrderStatus,
+  trackingNumber?: string | null,
+  note?: string | null
 ): Promise<ActionResponse> {
   try {
     // Require admin
-    await requireUser('ADMIN');
+    const admin = await requireUser('ADMIN');
 
-    const updated = await OrderRepository.updateStatus(orderId, status);
-    if (!updated) {
+    // Get current order to check old status
+    const order = await OrderRepository.findById(orderId);
+    if (!order) {
       return {
         success: false,
         error: 'Sipariş bulunamadı',
       };
     }
+
+    const oldStatus = order.status;
+
+    // Update order status (and tracking number if provided)
+    const updated = await OrderRepository.updateStatus(orderId, status, trackingNumber);
+    if (!updated) {
+      return {
+        success: false,
+        error: 'Sipariş durumu güncellenemedi',
+      };
+    }
+
+    // Create status history record
+    await OrderStatusHistoryRepository.create({
+      orderId,
+      adminUserId: admin.id,
+      oldStatus,
+      newStatus: status,
+      note: note || null,
+    });
 
     return {
       success: true,
@@ -378,7 +442,157 @@ export async function updateOrderStatus(
     console.error('Update order status error:', error);
     return {
       success: false,
-      error: 'Sipariş durumu güncellenirken bir hata oluştu',
+      error: error instanceof Error ? error.message : 'Sipariş durumu güncellenirken bir hata oluştu',
+    };
+  }
+}
+
+/**
+ * Cancel order and restore stock (admin only, or user for their own orders)
+ * Only PENDING and CONFIRMED orders can be cancelled
+ */
+export async function cancelOrder(orderId: number): Promise<ActionResponse> {
+  try {
+    const user = await requireUser();
+    const order = await OrderRepository.findById(orderId);
+
+    if (!order) {
+      return {
+        success: false,
+        error: 'Sipariş bulunamadı',
+      };
+    }
+
+    // Check if user is admin or order owner
+    if (user.role !== 'ADMIN' && order.userId !== user.id) {
+      return {
+        success: false,
+        error: 'Bu siparişi iptal etme yetkiniz yok',
+      };
+    }
+
+    // Only PENDING and CONFIRMED orders can be cancelled
+    if (order.status !== OrderStatus.PENDING && order.status !== OrderStatus.CONFIRMED) {
+      return {
+        success: false,
+        error: 'Bu sipariş iptal edilemez. Sadece beklemede veya onaylanmış siparişler iptal edilebilir.',
+      };
+    }
+
+    // Cancel order and restore stock in transaction
+    await executeTransaction(async (transaction) => {
+      // Update order status to CANCELLED
+      const updateRequest = new sql.Request(transaction);
+      updateRequest.timeout = 30000;
+      updateRequest.input('orderId', sql.Int, orderId);
+      updateRequest.input('status', sql.VarChar(50), OrderStatus.CANCELLED);
+
+      await updateRequest.query(`
+        UPDATE orders 
+        SET status = @status, updated_at = GETDATE()
+        WHERE id = @orderId
+      `);
+
+      // Restore stock for all order items
+      for (const item of order.items) {
+        if (item.productId) {
+          const restoreStockRequest = new sql.Request(transaction);
+          restoreStockRequest.timeout = 30000;
+          restoreStockRequest.input('productId', sql.Int, item.productId);
+          restoreStockRequest.input('quantity', sql.Int, item.quantity);
+
+          // Try to update with is_active, if it fails fall back to stock only
+          try {
+            await restoreStockRequest.query(`
+              UPDATE products WITH (ROWLOCK)
+              SET 
+                stock = stock + @quantity,
+                is_active = CASE WHEN (stock + @quantity) > 0 THEN 1 ELSE 0 END,
+                updated_at = GETDATE()
+              WHERE id = @productId
+            `);
+          } catch (error: any) {
+            // If is_active column doesn't exist (error 207), update only stock
+            if (error?.number === 207) {
+              await restoreStockRequest.query(`
+                UPDATE products WITH (ROWLOCK)
+                SET 
+                  stock = stock + @quantity,
+                  updated_at = GETDATE()
+                WHERE id = @productId
+              `);
+            } else {
+              throw error;
+            }
+          }
+        }
+      }
+
+      // Create status history record
+      const adminUserId = user.role === 'ADMIN' ? user.id : user.id; // User can cancel their own orders
+      const historyRequest = new sql.Request(transaction);
+      historyRequest.timeout = 30000;
+      historyRequest.input('orderId', sql.Int, orderId);
+      historyRequest.input('adminUserId', sql.Int, adminUserId);
+      historyRequest.input('oldStatus', sql.VarChar(50), order.status);
+      historyRequest.input('newStatus', sql.VarChar(50), OrderStatus.CANCELLED);
+      historyRequest.input('note', sql.NVarChar(500), 'Sipariş iptal edildi');
+
+      await historyRequest.query(`
+        INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, note, created_at)
+        VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @note, GETDATE())
+      `);
+    });
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Cancel order error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Sipariş iptal edilirken bir hata oluştu',
+    };
+  }
+}
+
+/**
+ * Get order status history (admin or order owner)
+ */
+export async function getOrderStatusHistory(orderId: number) {
+  try {
+    const user = await requireUser();
+    const order = await OrderRepository.findById(orderId);
+
+    if (!order) {
+      return {
+        success: false,
+        error: 'Sipariş bulunamadı',
+      };
+    }
+
+    // Check if user is admin or order owner
+    if (user.role !== 'ADMIN' && order.userId !== user.id) {
+      return {
+        success: false,
+        error: 'Bu siparişin durum geçmişine erişim yetkiniz yok',
+      };
+    }
+
+    // Get status history (with admin info for admin users, without for regular users)
+    const history = user.role === 'ADMIN'
+      ? await OrderStatusHistoryRepository.findByOrderIdWithAdmin(orderId)
+      : await OrderStatusHistoryRepository.findByOrderId(orderId);
+
+    return {
+      success: true,
+      data: history,
+    };
+  } catch (error) {
+    console.error('Get order status history error:', error);
+    return {
+      success: false,
+      error: 'Sipariş durum geçmişi yüklenirken bir hata oluştu',
     };
   }
 }
