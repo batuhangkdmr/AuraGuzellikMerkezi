@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getSalesReport, getProductSalesReport } from '@/app/server-actions/reportActions';
 import { formatDateToTurkeyShort } from '@/lib/utils/dateFormatter';
 import ReportsForm from './ReportsForm';
@@ -48,10 +49,16 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
 
         {/* Date Range Filter */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <ReportsForm
-            defaultStartDate={startDate.toISOString().split('T')[0]}
-            defaultEndDate={endDate.toISOString().split('T')[0]}
-          />
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+            </div>
+          }>
+            <ReportsForm
+              defaultStartDate={startDate.toISOString().split('T')[0]}
+              defaultEndDate={endDate.toISOString().split('T')[0]}
+            />
+          </Suspense>
         </div>
 
         {/* Summary Cards */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition, useEffect } from 'react';
+import { useState, useMemo, useTransition, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import AdvancedProductFilters from '@/components/AdvancedProductFilters';
@@ -30,7 +30,7 @@ interface ProductsPageClientProps {
 
 type SortOption = 'popular' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
 
-export default function ProductsPageClient({
+function ProductsPageContent({
   products: initialProducts,
   categories,
   attributes,
@@ -409,5 +409,22 @@ export default function ProductsPageClient({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductsPageClient(props: ProductsPageClientProps) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+            <span className="ml-3 text-gray-600">Yükleniyor...</span>
+          </div>
+        </div>
+      </div>
+    }>
+      <ProductsPageContent {...props} />
+    </Suspense>
   );
 }
