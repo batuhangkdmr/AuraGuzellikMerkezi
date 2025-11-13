@@ -1,6 +1,19 @@
 // Login Page
+import { Suspense } from 'react';
 import LoginForm from './LoginForm';
 import Link from 'next/link';
+
+function LoginFormWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
+  );
+}
 
 export default function LoginPage() {
   return (
@@ -15,7 +28,7 @@ export default function LoginPage() {
         </div>
 
         {/* Login Formu */}
-        <LoginForm />
+        <LoginFormWrapper />
 
         {/* Register Link */}
         <div className="mt-6 text-center">
