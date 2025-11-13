@@ -33,11 +33,13 @@ export default function FavoritesClient({ initialFavorites }: FavoritesClientPro
 
   // Listen for favorite changes and refresh
   useEffect(() => {
-    const handleFavoriteChange = async (event: CustomEvent) => {
+    const handleFavoriteChange = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ productId: number; isFavorite: boolean }>;
+      
       // If a favorite was removed, update the list immediately
-      if (event.detail?.isFavorite === false) {
-        setFavorites(prev => prev.filter(fav => fav.productId !== event.detail.productId));
-      } else if (event.detail?.isFavorite === true) {
+      if (customEvent.detail?.isFavorite === false) {
+        setFavorites(prev => prev.filter(fav => fav.productId !== customEvent.detail.productId));
+      } else if (customEvent.detail?.isFavorite === true) {
         // If a favorite was added, refresh the list
         startTransition(async () => {
           const result = await getFavorites();
@@ -56,8 +58,8 @@ export default function FavoritesClient({ initialFavorites }: FavoritesClientPro
       }
     };
 
-    window.addEventListener('favoriteChanged', handleFavoriteChange as EventListener);
-    return () => window.removeEventListener('favoriteChanged', handleFavoriteChange as EventListener);
+    window.addEventListener('favoriteChanged', handleFavoriteChange);
+    return () => window.removeEventListener('favoriteChanged', handleFavoriteChange);
   }, [router]);
 
   return (
