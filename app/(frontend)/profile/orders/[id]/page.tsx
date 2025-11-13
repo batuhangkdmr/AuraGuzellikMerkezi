@@ -1,6 +1,10 @@
 import { notFound } from 'next/navigation';
-import { getOrderById } from '@/app/server-actions/orderActions';
+import { getOrderById, getOrderStatusHistory } from '@/app/server-actions/orderActions';
 import Link from 'next/link';
+import Image from 'next/image';
+import UserOrderStatusTimeline from './UserOrderStatusTimeline';
+import CancelOrderButton from './CancelOrderButton';
+import { formatDateToTurkey, formatDateToTurkeyShort } from '@/lib/utils/dateFormatter';
 
 export default async function OrderDetailPage({
   params,
@@ -21,6 +25,10 @@ export default async function OrderDetailPage({
 
   const order = result.data;
   const shippingAddress = order.shippingAddress;
+
+  // Get status history
+  const historyResult = await getOrderStatusHistory(order.id);
+  const statusHistory = historyResult.success && historyResult.data ? historyResult.data : [];
 
   const statusColors: Record<string, string> = {
     PENDING: 'bg-yellow-100 text-yellow-800',
@@ -67,24 +75,18 @@ export default async function OrderDetailPage({
               <div className="space-y-2 text-gray-700">
                 <p>
                   <span className="font-medium">Sipariş Tarihi:</span>{' '}
-                  {new Date(order.createdAt).toLocaleDateString('tr-TR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {formatDateToTurkey(order.createdAt)}
                 </p>
                 {order.confirmedAt && (
                   <p>
                     <span className="font-medium">Onay Tarihi:</span>{' '}
-                    {new Date(order.confirmedAt).toLocaleDateString('tr-TR', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {formatDateToTurkey(order.confirmedAt)}
+                  </p>
+                )}
+                {order.trackingNumber && (
+                  <p>
+                    <span className="font-medium">Kargo Takip Numarası:</span>{' '}
+                    <span className="font-semibold text-pink-600">{order.trackingNumber}</span>
                   </p>
                 )}
                 <p>
@@ -112,7 +114,7 @@ export default async function OrderDetailPage({
           </div>
 
           {/* Order Items */}
-          <div>
+          <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Sipariş Detayları</h2>
             <div className="border-t border-gray-200">
               <table className="w-full">
@@ -125,22 +127,50 @@ export default async function OrderDetailPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {order.items.map((item) => (
-                    <tr key={item.id} className="border-b border-gray-100">
-                      <td className="py-3 px-4 text-gray-900">{item.nameSnapshot}</td>
-                      <td className="py-3 px-4 text-right text-gray-700">
-                        {item.priceSnapshot.toFixed(2)} ₺
-                      </td>
-                      <td className="py-3 px-4 text-right text-gray-700">{item.quantity}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-gray-900">
-                        {(item.priceSnapshot * item.quantity).toFixed(2)} ₺
-                      </td>
-                    </tr>
-                  ))}
+                  {order.items.map((item: any) => {
+                    const productImage = item.productImage || '/placeholder-image.svg';
+                    return (
+                      <tr key={item.id} className="border-b border-gray-100">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="relative h-16 w-16 flex-shrink-0">
+                              <Image
+                                src={productImage}
+                                alt={item.nameSnapshot}
+                                fill
+                                className="object-cover rounded"
+                                sizes="64px"
+                              />
+                            </div>
+                            <span className="text-gray-900">{item.nameSnapshot}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-right text-gray-700">
+                          {item.priceSnapshot.toFixed(2)} ₺
+                        </td>
+                        <td className="py-3 px-4 text-right text-gray-700">{item.quantity}</td>
+                        <td className="py-3 px-4 text-right font-semibold text-gray-900">
+                          {(item.priceSnapshot * item.quantity).toFixed(2)} ₺
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </div>
+
+          {/* Status Timeline */}
+          <div className="mb-8">
+            <UserOrderStatusTimeline history={statusHistory} />
+          </div>
+
+          {/* Cancel Button (only for PENDING or CONFIRMED orders) */}
+          {(order.status === 'PENDING' || order.status === 'CONFIRMED') && (
+            <div className="mb-8">
+              <CancelOrderButton orderId={order.id} />
+            </div>
+          )}
         </div>
       </div>
     </div>

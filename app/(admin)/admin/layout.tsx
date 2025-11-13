@@ -55,11 +55,17 @@ export default async function AdminLayout({
               <Link href="/admin" className="hover:text-pink-400 transition">
                 Dashboard
               </Link>
+              <Link href="/admin/categories" className="hover:text-pink-400 transition">
+                Kategoriler
+              </Link>
               <Link href="/admin/products" className="hover:text-pink-400 transition">
                 Ürünler
               </Link>
               <Link href="/admin/orders" className="hover:text-pink-400 transition">
                 Siparişler
+              </Link>
+              <Link href="/admin/reports" className="hover:text-pink-400 transition">
+                Raporlar
               </Link>
               <Link href="/admin/randevular" className="hover:text-pink-400 transition">
                 Randevular

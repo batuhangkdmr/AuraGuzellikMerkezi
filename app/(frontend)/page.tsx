@@ -1,21 +1,59 @@
 import Link from 'next/link';
+import { getAllProducts } from '@/app/server-actions/productActions';
+import ProductCard from '@/components/ProductCard';
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Get first 8 products for homepage
+  const productsResult = await getAllProducts();
+  const products = productsResult.success && productsResult.data 
+    ? productsResult.data.slice(0, 8)
+    : [];
+
   return (
     <div>
-      {/* Hero Section */}
+      {/* Hero Section / Banner */}
       <section className="bg-gradient-to-r from-pink-500 to-purple-600 text-white py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold mb-4">Aura Güzellik Merkezi</h1>
           <p className="text-xl mb-8">Güzelliğiniz bizim işimiz</p>
-          <Link 
-            href="/randevu" 
-            className="bg-white text-pink-600 px-8 py-3 rounded-full text-lg font-semibold hover:bg-gray-100 transition inline-block"
-          >
-            Randevu Al
-          </Link>
+          <div className="flex gap-4 justify-center">
+            <Link 
+              href="/products" 
+              className="bg-white text-pink-600 px-8 py-3 rounded-full text-lg font-semibold hover:bg-gray-100 transition inline-block"
+            >
+              Ürünleri Keşfet
+            </Link>
+            <Link 
+              href="/randevu" 
+              className="bg-pink-700 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-pink-800 transition inline-block"
+            >
+              Randevu Al
+            </Link>
+          </div>
         </div>
       </section>
+
+      {/* Popular Products Section */}
+      {products.length > 0 && (
+        <section className="py-16 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold text-gray-900">Popüler Ürünler</h2>
+              <Link 
+                href="/products" 
+                className="text-pink-600 hover:text-pink-700 font-medium"
+              >
+                Tümünü Gör →
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Hizmetlerimiz Preview */}
       <section className="py-16">

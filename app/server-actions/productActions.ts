@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { ProductRepository } from '@/lib/repositories/ProductRepository';
+import { CategoryRepository } from '@/lib/repositories/CategoryRepository';
 import { requireUser } from '@/lib/requireUser';
 import { UserRole } from '@/lib/types/UserRole';
 
@@ -13,6 +14,8 @@ const createProductSchema = z.object({
   price: z.number().positive('Fiyat pozitif olmalıdır'),
   stock: z.number().int().min(0, 'Stok negatif olamaz'),
   images: z.array(z.string().url()).default([]),
+  primaryCategoryId: z.number().int().positive().nullable().optional(),
+  categoryIds: z.array(z.number().int().positive()).default([]),
 });
 
 const updateProductSchema = createProductSchema.partial();
@@ -25,10 +28,47 @@ export interface ActionResponse<T = void> {
 
 /**
  * Get all products (public - only active and in stock)
+ * Optionally filter by category slug
  */
-export async function getAllProducts() {
+export async function getAllProducts(categorySlug?: string) {
   try {
-    const products = await ProductRepository.findAll(false); // Only active products
+    let products = await ProductRepository.findAll(false); // Only active products
+    
+    // Filter by category if provided
+    if (categorySlug) {
+      // Find category by slug
+      const category = await CategoryRepository.findBySlug(categorySlug, false);
+      if (category) {
+        // Get all category IDs (category and its children)
+        const categoryIds: number[] = [category.id];
+        
+        // Get all children recursively
+        const getChildrenIds = async (catId: number) => {
+          const children = await CategoryRepository.findByParentId(catId, false);
+          for (const child of children) {
+            categoryIds.push(child.id);
+            await getChildrenIds(child.id); // Recursive for grandchildren
+          }
+        };
+        await getChildrenIds(category.id);
+        
+        // Get products that belong to any of these categories
+        const productsWithCategories = await Promise.all(
+          products.map(async (product) => {
+            const productCategories = await CategoryRepository.findByProductId(product.id);
+            return { product, categories: productCategories };
+          })
+        );
+        
+        // Filter products that have at least one matching category
+        products = productsWithCategories
+          .filter(({ categories }) => 
+            categories.some(cat => categoryIds.includes(cat.id))
+          )
+          .map(({ product }) => product);
+      }
+    }
+    
     return {
       success: true,
       data: products.map(p => ({
@@ -86,11 +126,16 @@ export async function getProductById(id: number) {
         error: 'Ürün bulunamadı',
       };
     }
+
+    // Get product categories
+    const categories = await CategoryRepository.findByProductId(id);
+
     return {
       success: true,
       data: {
         ...product,
         images: ProductRepository.parseImages(product.images),
+        categories: categories,
       },
     };
   } catch (error) {
@@ -126,10 +171,26 @@ export async function createProduct(formData: FormData): Promise<ActionResponse<
       }
     }
 
-    // Debug: Log received images
-    console.log('Received images in createProduct:', imagesArray);
-    console.log('Images data type:', typeof imagesData);
-    console.log('Images data:', imagesData);
+    // Get category IDs from formData (can be multiple)
+    const categoryIdsData = formData.get('categoryIds');
+    let categoryIds: number[] = [];
+    if (categoryIdsData) {
+      try {
+        const parsed = typeof categoryIdsData === 'string' 
+          ? JSON.parse(categoryIdsData) 
+          : categoryIdsData;
+        categoryIds = Array.isArray(parsed) ? parsed.map(id => parseInt(String(id), 10)) : [];
+      } catch (error) {
+        console.error('Error parsing categoryIds JSON:', error);
+        categoryIds = [];
+      }
+    }
+
+    // Get primary category ID
+    const primaryCategoryIdValue = formData.get('primaryCategoryId');
+    const primaryCategoryId = primaryCategoryIdValue && primaryCategoryIdValue !== '' && primaryCategoryIdValue !== 'null'
+      ? parseInt(primaryCategoryIdValue as string, 10)
+      : null;
 
     const rawData = {
       name: formData.get('name') as string,
@@ -138,14 +199,12 @@ export async function createProduct(formData: FormData): Promise<ActionResponse<
       price: parseFloat(formData.get('price') as string),
       stock: parseInt(formData.get('stock') as string, 10),
       images: imagesArray.length > 0 ? imagesArray : [], // Ensure it's always an array
+      primaryCategoryId: primaryCategoryId,
+      categoryIds: categoryIds,
     };
 
     const validated = createProductSchema.parse(rawData);
     
-    // Debug: Log validated images
-    console.log('Validated images:', validated.images);
-    console.log('Validated images length:', validated.images?.length || 0);
-
     // Check if slug already exists
     const existingProduct = await ProductRepository.findBySlug(validated.slug);
     if (existingProduct) {
@@ -156,16 +215,12 @@ export async function createProduct(formData: FormData): Promise<ActionResponse<
     }
 
     // Convert images array to JSON string for database storage
-    // Always save images, even if empty array (store as empty array JSON, not null)
     const imagesToSave = validated.images || [];
     const imagesJson = imagesToSave.length > 0
       ? ProductRepository.stringifyImages(imagesToSave)
-      : null; // Store null if empty array (database allows null)
+      : null;
 
-    // Debug: Log images JSON before saving
-    console.log('Images to save:', imagesToSave);
-    console.log('Images JSON to save:', imagesJson);
-
+    // Create product
     const product = await ProductRepository.create({
       name: validated.name,
       slug: validated.slug,
@@ -173,10 +228,13 @@ export async function createProduct(formData: FormData): Promise<ActionResponse<
       price: validated.price,
       stock: validated.stock,
       images: imagesJson,
+      primaryCategoryId: validated.primaryCategoryId || null,
     });
-    
-    // Debug: Log created product
-    console.log('Created product:', product);
+
+    // Set product categories (many-to-many relationship)
+    if (validated.categoryIds && validated.categoryIds.length > 0) {
+      await CategoryRepository.setProductCategories(product.id, validated.categoryIds);
+    }
 
     return {
       success: true,
@@ -233,8 +291,26 @@ export async function updateProduct(
       }
     }
 
-    // Debug: Log received images
-    console.log('Received images in updateProduct:', imagesArray);
+    // Get category IDs from formData (can be multiple)
+    const categoryIdsData = formData.get('categoryIds');
+    let categoryIds: number[] = [];
+    if (categoryIdsData) {
+      try {
+        const parsed = typeof categoryIdsData === 'string' 
+          ? JSON.parse(categoryIdsData) 
+          : categoryIdsData;
+        categoryIds = Array.isArray(parsed) ? parsed.map(catId => parseInt(String(catId), 10)) : [];
+      } catch (error) {
+        console.error('Error parsing categoryIds JSON:', error);
+        categoryIds = [];
+      }
+    }
+
+    // Get primary category ID
+    const primaryCategoryIdValue = formData.get('primaryCategoryId');
+    const primaryCategoryId = primaryCategoryIdValue && primaryCategoryIdValue !== '' && primaryCategoryIdValue !== 'null'
+      ? parseInt(primaryCategoryIdValue as string, 10)
+      : null;
 
     const rawData: any = {};
     if (formData.get('name')) rawData.name = formData.get('name') as string;
@@ -244,6 +320,12 @@ export async function updateProduct(
     if (formData.get('stock')) rawData.stock = parseInt(formData.get('stock') as string, 10);
     if (imagesArray.length > 0 || formData.get('images')) {
       rawData.images = imagesArray.length > 0 ? imagesArray : [];
+    }
+    if (primaryCategoryIdValue !== null) {
+      rawData.primaryCategoryId = primaryCategoryId;
+    }
+    if (categoryIdsData !== null) {
+      rawData.categoryIds = categoryIds;
     }
 
     const validated = updateProductSchema.parse(rawData);
@@ -270,8 +352,9 @@ export async function updateProduct(
       updates.images = imagesToSave.length > 0
         ? ProductRepository.stringifyImages(imagesToSave)
         : null;
-      console.log('Update images to save:', imagesToSave);
-      console.log('Update images JSON:', updates.images);
+    }
+    if (validated.primaryCategoryId !== undefined) {
+      updates.primaryCategoryId = validated.primaryCategoryId;
     }
 
     const product = await ProductRepository.update(id, updates);
@@ -280,6 +363,11 @@ export async function updateProduct(
         success: false,
         error: 'Ürün bulunamadı',
       };
+    }
+
+    // Update product categories (many-to-many relationship)
+    if (validated.categoryIds !== undefined) {
+      await CategoryRepository.setProductCategories(product.id, validated.categoryIds);
     }
 
     return {
@@ -365,4 +453,3 @@ export async function toggleProductActive(id: number, isActive: boolean): Promis
     };
   }
 }
-

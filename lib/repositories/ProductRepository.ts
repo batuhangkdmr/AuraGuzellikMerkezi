@@ -11,6 +11,7 @@ export interface Product {
   stock: number;
   images: string | null; // JSON array as string
   isActive: boolean;
+  primaryCategoryId: number | null; // Primary category (optional)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,31 +39,61 @@ export class ProductRepository {
     try {
       // Try with is_active column first
       const whereClause = includeInactive ? 'WHERE id = @id' : 'WHERE id = @id AND is_active = 1';
-      const result = await executeQueryOne<Product>(
+      const result = await executeQueryOne<any>(
         `SELECT id, name, slug, description, price, stock, images, 
                 is_active as isActive,
-                created_at as createdAt, updated_at as updatedAt 
+                primary_category_id as primaryCategoryId,
+                CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+                CONVERT(VARCHAR(23), updated_at, 126) as updatedAt 
          FROM products ${whereClause}`,
         { id }
       );
-      return result;
+      
+      if (!result) return null;
+      
+      // Parse dates
+      const parseSqlDate = (dateStr: string | null): Date | null => {
+        if (!dateStr) return null;
+        const normalized = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T');
+        return new Date(normalized);
+      };
+      
+      return {
+        ...result,
+        createdAt: parseSqlDate(result.createdAt)!,
+        updatedAt: parseSqlDate(result.updatedAt)!,
+      };
     } catch (error: any) {
       // If is_active column doesn't exist (error 207), fall back to stock-based check
       if (error?.number === 207) {
         const whereClause = includeInactive 
           ? 'WHERE id = @id' 
           : 'WHERE id = @id AND stock > 0';
-        const result = await executeQueryOne<Product>(
+        const result = await executeQueryOne<any>(
           `SELECT id, name, slug, description, price, stock, images, 
                   CASE WHEN stock > 0 THEN 1 ELSE 0 END as isActive,
-                  created_at as createdAt, updated_at as updatedAt 
+                  primary_category_id as primaryCategoryId,
+                  CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+                  CONVERT(VARCHAR(23), updated_at, 126) as updatedAt 
            FROM products ${whereClause}`,
           { id }
         );
-        if (result) {
-          result.isActive = result.stock > 0;
-        }
-        return result;
+        
+        if (!result) return null;
+        
+        // Parse dates
+        const parseSqlDate = (dateStr: string | null): Date | null => {
+          if (!dateStr) return null;
+          const normalized = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T');
+          return new Date(normalized);
+        };
+        
+        return {
+          ...result,
+          isActive: result.stock > 0,
+          createdAt: parseSqlDate(result.createdAt)!,
+          updatedAt: parseSqlDate(result.updatedAt)!,
+        };
       }
       console.error('Error in findById:', error);
       throw error;
@@ -152,16 +183,17 @@ export class ProductRepository {
     stock: number;
     images?: string | null;
     isActive?: boolean;
+    primaryCategoryId?: number | null;
   }): Promise<Product> {
     // Set is_active based on stock (if stock > 0, active = true)
     const isActive = productData.isActive !== undefined ? productData.isActive : (productData.stock > 0);
     
     try {
-      // Try to create with is_active column
+      // Try to create with is_active and primary_category_id columns
       const result = await executeQueryOne<{ id: number }>(
-        `INSERT INTO products (name, slug, description, price, stock, images, is_active, created_at, updated_at)
+        `INSERT INTO products (name, slug, description, price, stock, images, is_active, primary_category_id, created_at, updated_at)
          OUTPUT INSERTED.id
-         VALUES (@name, @slug, @description, @price, @stock, @images, @isActive, GETDATE(), GETDATE())`,
+         VALUES (@name, @slug, @description, @price, @stock, @images, @isActive, @primaryCategoryId, GETDATE(), GETDATE())`,
         {
           name: productData.name,
           slug: productData.slug,
@@ -170,6 +202,7 @@ export class ProductRepository {
           stock: productData.stock,
           images: productData.images || null,
           isActive: isActive ? 1 : 0,
+          primaryCategoryId: productData.primaryCategoryId || null,
         }
       );
       
@@ -223,6 +256,7 @@ export class ProductRepository {
     stock: number;
     images: string | null;
     isActive: boolean;
+    primaryCategoryId: number | null;
   }>): Promise<Product | null> {
     const fields: string[] = [];
     const params: Record<string, any> = { id };
@@ -274,18 +308,21 @@ export class ProductRepository {
 
       return await this.findById(id, true); // Include inactive for admin
     } catch (error: any) {
-      // If is_active column doesn't exist (error 207), update without it
+      // If is_active or primary_category_id column doesn't exist (error 207), update without them
       if (error?.number === 207) {
-        // Remove is_active related fields and try again
-        const fieldsWithoutIsActive = fields.filter(f => !f.includes('is_active'));
-        if (fieldsWithoutIsActive.length > 0) {
-          // Remove is_active from params if it exists
-          const paramsWithoutIsActive = { ...params };
-          delete paramsWithoutIsActive.isActive;
+        // Remove is_active and primary_category_id related fields and try again
+        const fieldsWithoutOptional = fields.filter(f => 
+          !f.includes('is_active') && !f.includes('primary_category_id')
+        );
+        if (fieldsWithoutOptional.length > 0) {
+          // Remove optional fields from params
+          const paramsWithoutOptional = { ...params };
+          delete paramsWithoutOptional.isActive;
+          delete paramsWithoutOptional.primaryCategoryId;
           
           await executeNonQuery(
-            `UPDATE products SET ${fieldsWithoutIsActive.join(', ')} WHERE id = @id`,
-            paramsWithoutIsActive
+            `UPDATE products SET ${fieldsWithoutOptional.join(', ')} WHERE id = @id`,
+            paramsWithoutOptional
           );
         }
         return await this.findById(id, true);
