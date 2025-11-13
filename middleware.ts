@@ -1,7 +1,8 @@
 // Middleware - Route Protection
+// Note: Use jwt.ts instead of auth.ts to avoid bcryptjs import (Edge Runtime compatible)
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth/auth';
+import { verifyToken } from '@/lib/auth/jwt';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

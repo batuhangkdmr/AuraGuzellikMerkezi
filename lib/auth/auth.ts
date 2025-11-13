@@ -1,23 +1,12 @@
-// Authentication Helper Functions
-// Note: bcryptjs is not Edge Runtime compatible, but this file is only used in Server Actions (Node.js Runtime)
+// Authentication Helper Functions - Node.js Runtime Only
+// Note: bcryptjs is not Edge Runtime compatible, so this file is only used in Server Actions
+// For Edge Runtime (middleware), use lib/auth/jwt.ts instead
+
 import bcrypt from 'bcryptjs';
-import { SignJWT, jwtVerify } from 'jose';
 
-// JWT Payload interface
-export interface JwtPayload {
-  userId: number;
-  email: string;
-  role: string;
-  iat?: number;
-  exp?: number;
-}
-
-// JWT Secret Key
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
-const JWT_EXPIRES_IN = '7d'; // 7 gün
-
-// Convert secret to Uint8Array for jose
-const getSecretKey = () => new TextEncoder().encode(JWT_SECRET);
+// Re-export JWT types and functions from jwt.ts for backward compatibility
+export type { JwtPayload } from './jwt';
+export { createToken, verifyToken } from './jwt';
 
 /**
  * Şifreyi hash'le (bcrypt)
@@ -43,41 +32,6 @@ export async function comparePassword(
   return await bcrypt.compare(password, hashedPassword);
 }
 
-/**
- * JWT Token oluştur (jose - Edge Runtime uyumlu)
- * @param payload - User bilgileri
- * @returns JWT token string
- */
-export async function createToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): Promise<string> {
-  const token = await new SignJWT(payload as any)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d')
-    .sign(getSecretKey());
-  
-  return token;
-}
-
-/**
- * JWT Token doğrula (jose - Edge Runtime uyumlu)
- * @param token - JWT token string
- * @returns Decoded payload veya null
- */
-export async function verifyToken(token: string): Promise<JwtPayload | null> {
-  try {
-    const { payload } = await jwtVerify(token, getSecretKey());
-    
-    // Jose's JWTPayload'ı bizim custom JwtPayload tipine dönüştür
-    if (payload && typeof payload === 'object' && 'userId' in payload) {
-      return payload as unknown as JwtPayload;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('JWT verify error:', error);
-    return null;
-  }
-}
 
 /**
  * Registration Secret Key kontrolü
