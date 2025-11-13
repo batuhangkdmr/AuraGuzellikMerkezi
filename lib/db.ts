@@ -1,10 +1,9 @@
-// SQL Server Connection - Supports both LocalDB (via msnodesqlv8) and regular SQL Server (via tedious)
-// LocalDB requires msnodesqlv8 for Named Pipes support
+// SQL Server Connection - Uses tedious driver (mssql) for all connections
+// Vercel production environment only supports tedious driver (no native modules)
 import 'server-only';
 
 import type * as SqlTypes from 'mssql';
-let sql: any;
-let usingMsnodesqlv8 = false;
+import sql from 'mssql';
 
 // Parse DATABASE_URL from environment
 // Supports ASP.NET Core format: Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=dbname;Integrated Security=True;
@@ -191,53 +190,9 @@ function getSqlConfig(): any {
     return sqlConfig;
   }
 
-  // Check if this is LocalDB
-  const isLocalDB = dbConfig.options?.instanceName === 'MSSQLLocalDB' || 
-                    (dbConfig.server === 'localhost' && dbConfig.options?.instanceName === 'MSSQLLocalDB') ||
-                    dbConfig.server?.toLowerCase().includes('localdb');
-  
-  // For LocalDB, use msnodesqlv8 driver (supports Named Pipes)
-  if (isLocalDB) {
-    // Try to load msnodesqlv8 for LocalDB
-    try {
-      sql = require('mssql/msnodesqlv8');
-      usingMsnodesqlv8 = true;
-      
-      // msnodesqlv8 requires connectionString format (ODBC connection string)
-      // Try different ODBC drivers in order of preference
-      const odbcDrivers = [
-        'ODBC Driver 17 for SQL Server',
-        'ODBC Driver 13 for SQL Server',
-        'SQL Server Native Client 11.0',
-        'SQL Server'
-      ];
-      
-      // Build connection string for msnodesqlv8
-      const instanceName = dbConfig.options?.instanceName || 'MSSQLLocalDB';
-      const database = dbConfig.database || 'auraguzellikmerkezi2';
-      
-      // Try first driver (most common)
-      const connectionString = `Driver={${odbcDrivers[0]}};Server=(localdb)\\${instanceName};Database=${database};Trusted_Connection=Yes;`;
-      
-      sqlConfig = {
-        connectionString,
-        options: {
-          encrypt: false,
-          trustServerCertificate: true,
-        },
-      } as any;
-      
-      return sqlConfig;
-    } catch (error) {
-      console.error('Failed to load msnodesqlv8 driver for LocalDB:', error);
-      throw new Error('LocalDB connection requires msnodesqlv8 driver. Please install it: npm install msnodesqlv8');
-    }
-  }
-  
-  // For regular SQL Server, use tedious driver
-  if (!sql) {
-    sql = require('mssql');
-  }
+  // Use tedious driver for all connections (Vercel-compatible)
+  // Note: LocalDB connections from Vercel are not supported
+  // All production connections should use remote SQL Server with TCP/IP
   
   // Check if this is a named instance (has instanceName option) but not LocalDB
   const isNamedInstance = dbConfig.options?.instanceName && 
