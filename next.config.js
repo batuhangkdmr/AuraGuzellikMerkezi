@@ -10,13 +10,14 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ['mssql'],
+    serverComponentsExternalPackages: ['mssql', 'bcryptjs'],
   },
   webpack: (config, { isServer }) => {
     config.externals = config.externals || [];
     config.externals.push({
       mssql: 'commonjs mssql',
       tedious: 'commonjs tedious',
+      bcryptjs: 'commonjs bcryptjs',
       'node:events': 'commonjs node:events',
     });
 

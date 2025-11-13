@@ -114,7 +114,6 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
 
       // Fetch all products at once (more efficient, with shorter lock time)
       const productsRequest = new sql.Request(transaction);
-      productsRequest.timeout = 30000; // 30 second timeout (increased from 5s)
       
       // Add parameters first
       productIds.forEach((id, i) => {
@@ -177,7 +176,6 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
       // Update stock for all products (one query per product, but with ROWLOCK for better concurrency)
       for (const cartItem of cartItems) {
         const updateStockRequest = new sql.Request(transaction);
-        updateStockRequest.timeout = 30000; // 30 second timeout
         updateStockRequest.input('productId', sql.Int, cartItem.productId);
         updateStockRequest.input('quantity', sql.Int, cartItem.quantity);
         
@@ -212,7 +210,6 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
 
       // Create order directly in transaction (no nested transaction)
       const orderRequest = new sql.Request(transaction);
-      orderRequest.timeout = 30000; // 30 second timeout
       orderRequest.input('userId', sql.Int, user.id);
       orderRequest.input('total', sql.Decimal(18, 2), total);
       orderRequest.input('status', sql.VarChar(50), 'PENDING');
@@ -229,7 +226,6 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
       // Batch insert order items (much faster than individual inserts)
       for (const item of orderItems) {
         const itemRequest = new sql.Request(transaction);
-        itemRequest.timeout = 30000; // 30 second timeout
         itemRequest.input('orderId', sql.Int, orderId);
         itemRequest.input('productId', sql.Int, item.productId);
         itemRequest.input('nameSnapshot', sql.NVarChar(255), item.nameSnapshot);
@@ -244,7 +240,6 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
 
       // Clear cart
       const clearCartRequest = new sql.Request(transaction);
-      clearCartRequest.timeout = 30000; // 30 second timeout
       clearCartRequest.input('userId', sql.Int, user.id);
       await clearCartRequest.query(`
         DELETE FROM cart_items WHERE user_id = @userId
@@ -252,7 +247,6 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
 
       // Create initial status history record (PENDING status when order is created)
       const historyRequest = new sql.Request(transaction);
-      historyRequest.timeout = 30000;
       historyRequest.input('orderId', sql.Int, orderId);
       historyRequest.input('adminUserId', sql.Int, user.id); // User who created the order
       historyRequest.input('oldStatus', sql.VarChar(50), null);
@@ -483,7 +477,6 @@ export async function cancelOrder(orderId: number): Promise<ActionResponse> {
     await executeTransaction(async (transaction) => {
       // Update order status to CANCELLED
       const updateRequest = new sql.Request(transaction);
-      updateRequest.timeout = 30000;
       updateRequest.input('orderId', sql.Int, orderId);
       updateRequest.input('status', sql.VarChar(50), OrderStatus.CANCELLED);
 
@@ -497,7 +490,6 @@ export async function cancelOrder(orderId: number): Promise<ActionResponse> {
       for (const item of order.items) {
         if (item.productId) {
           const restoreStockRequest = new sql.Request(transaction);
-          restoreStockRequest.timeout = 30000;
           restoreStockRequest.input('productId', sql.Int, item.productId);
           restoreStockRequest.input('quantity', sql.Int, item.quantity);
 
@@ -531,7 +523,6 @@ export async function cancelOrder(orderId: number): Promise<ActionResponse> {
       // Create status history record
       const adminUserId = user.role === 'ADMIN' ? user.id : user.id; // User can cancel their own orders
       const historyRequest = new sql.Request(transaction);
-      historyRequest.timeout = 30000;
       historyRequest.input('orderId', sql.Int, orderId);
       historyRequest.input('adminUserId', sql.Int, adminUserId);
       historyRequest.input('oldStatus', sql.VarChar(50), order.status);
