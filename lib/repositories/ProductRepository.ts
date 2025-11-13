@@ -293,11 +293,16 @@ export class ProductRepository {
       fields.push('is_active = @isActive');
       params.isActive = updates.isActive ? 1 : 0;
     }
+    if (updates.primaryCategoryId !== undefined) {
+      fields.push('primary_category_id = @primaryCategoryId');
+      params.primaryCategoryId = updates.primaryCategoryId || null;
+    }
 
     if (fields.length === 0) {
       return await this.findById(id, true); // Include inactive for admin
     }
 
+    // Try to add updated_at, but handle error if column doesn't exist
     fields.push('updated_at = GETDATE()');
 
     try {
@@ -308,11 +313,14 @@ export class ProductRepository {
 
       return await this.findById(id, true); // Include inactive for admin
     } catch (error: any) {
-      // If is_active or primary_category_id column doesn't exist (error 207), update without them
+      // If is_active, primary_category_id, or updated_at column doesn't exist (error 207), update without them
       if (error?.number === 207) {
-        // Remove is_active and primary_category_id related fields and try again
+        // Remove is_active, primary_category_id, and updated_at related fields and try again
         const fieldsWithoutOptional = fields.filter(f => 
-          !f.includes('is_active') && !f.includes('primary_category_id')
+          !f.includes('is_active') && 
+          !f.includes('primary_category_id') && 
+          !f.includes('updated_at') &&
+          !f.includes('created_at')
         );
         if (fieldsWithoutOptional.length > 0) {
           // Remove optional fields from params
@@ -354,6 +362,39 @@ export class ProductRepository {
   // Helper method to stringify images array
   static stringifyImages(urls: string[]): string {
     return JSON.stringify(urls);
+  }
+
+  // Set product attribute values (delete old ones and add new ones)
+  static async setProductAttributeValues(
+    productId: number,
+    attributeValues: Record<number, number[]> // attributeId -> valueId[]
+  ): Promise<void> {
+    try {
+      // First, delete all existing attribute values for this product
+      await executeNonQuery(
+        'DELETE FROM product_attribute_values WHERE product_id = @productId',
+        { productId }
+      );
+
+      // Then, insert new attribute values
+      const valueIds: number[] = [];
+      Object.values(attributeValues).forEach(valueIdArray => {
+        valueIds.push(...valueIdArray);
+      });
+
+      if (valueIds.length > 0) {
+        // Insert all values one by one (SQL Server doesn't support multi-row INSERT easily)
+        for (const valueId of valueIds) {
+          await executeNonQuery(
+            'INSERT INTO product_attribute_values (product_id, attribute_value_id) VALUES (@productId, @valueId)',
+            { productId, valueId }
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error setting product attribute values:', error);
+      throw error;
+    }
   }
 }
 

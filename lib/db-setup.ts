@@ -13,16 +13,20 @@ function parseDatabaseUrl() {
     throw new Error('DATABASE_URL environment variable is not set');
   }
 
-  // Check if it's ASP.NET Core connection string format
-  if (dbUrl.includes('Data Source=') || dbUrl.includes('Initial Catalog=')) {
+  // Check if it's ASP.NET Core connection string format or Node.js format
+  if (dbUrl.includes('Data Source=') || dbUrl.includes('Initial Catalog=') || 
+      dbUrl.includes('Server=') || dbUrl.includes('Database=')) {
     const parts = dbUrl.split(';').filter(p => p.trim());
     const config: any = {
       server: 'localhost',
       database: '',
+      user: '',
+      password: '',
       options: {
         encrypt: false,
         trustServerCertificate: true,
         enableArithAbort: true,
+        trustedConnection: false,
       },
     };
 
@@ -34,7 +38,31 @@ function parseDatabaseUrl() {
       if (keyLower === 'data source' || keyLower === 'server') {
         const serverValue = value.trim();
         
-        if (serverValue.startsWith('(localdb)')) {
+        // Handle .\ format (local server with named instance) or IP\Instance format
+        if (serverValue === '.' || serverValue.startsWith('.\\')) {
+          // For .\ format, we need the actual host - this is likely a remote server
+          // Try to extract instance name if present
+          if (serverValue.includes('\\')) {
+            const instanceName = serverValue.substring(serverValue.indexOf('\\') + 1);
+            // For remote hosting, we might need the actual server address
+            // But for now, we'll try to use it as-is and let the user know if it fails
+            config.server = 'localhost'; // Will need to be updated with actual host
+            config.options.instanceName = instanceName;
+          } else {
+            config.server = 'localhost';
+          }
+        } else if (serverValue.includes('\\') && !serverValue.startsWith('(localdb)')) {
+          // Named instance format: IP\Instance or Domain\Instance
+          const parts = serverValue.split('\\');
+          if (parts.length === 2) {
+            // For remote server, use the IP/domain as server
+            config.server = parts[0].trim();
+            config.options.instanceName = parts[1].trim();
+            config.port = undefined; // Don't use port with named instance
+          } else {
+            config.server = serverValue;
+          }
+        } else if (serverValue.startsWith('(localdb)')) {
           const backslashIndex = serverValue.indexOf('\\');
           if (backslashIndex !== -1) {
             config.server = 'localhost';
@@ -43,22 +71,26 @@ function parseDatabaseUrl() {
             config.server = 'localhost';
             config.options.instanceName = 'MSSQLLocalDB';
           }
-        } else if (serverValue.includes('\\')) {
-          const parts = serverValue.split('\\');
-          if (parts.length === 2) {
-            config.server = parts[0] === 'localhost' ? 'localhost' : parts[0];
-            config.options.instanceName = parts[1];
-            config.port = undefined;
-          } else {
-            config.server = serverValue;
-          }
+        } else if (serverValue.includes(',')) {
+          // Server,Port format
+          const [server, port] = serverValue.split(',');
+          config.server = server.trim();
+          config.port = parseInt(port.trim(), 10);
         } else {
           config.server = serverValue;
         }
       } else if (keyLower === 'initial catalog' || keyLower === 'database') {
         config.database = value;
+      } else if (keyLower === 'user id' || keyLower === 'uid' || keyLower === 'user') {
+        config.user = value;
+      } else if (keyLower === 'password' || keyLower === 'pwd') {
+        config.password = value;
       } else if (keyLower === 'integrated security') {
-        config.options.trustedConnection = value.toLowerCase() === 'true';
+        config.options.trustedConnection = value.toLowerCase() === 'true' || value.toLowerCase() === 'yes';
+      } else if (keyLower === 'encrypt') {
+        config.options.encrypt = value.toLowerCase() === 'true' || value.toLowerCase() === 'yes';
+      } else if (keyLower === 'trustservercertificate') {
+        config.options.trustServerCertificate = value.toLowerCase() === 'true' || value.toLowerCase() === 'yes';
       }
     }
 
@@ -116,16 +148,26 @@ function getSqlConfig(): any {
   sqlConfig = {
     server: dbConfig.server,
     database: dbConfig.database,
+    user: dbConfig.user || undefined,
+    password: dbConfig.password || undefined,
+    port: dbConfig.port || undefined,
+    connectionTimeout: 30000, // 30 seconds
+    requestTimeout: 30000, // 30 seconds
     options: {
       encrypt: dbConfig.options?.encrypt || false,
       trustServerCertificate: dbConfig.options?.trustServerCertificate ?? true,
       enableArithAbort: true,
-      trustedConnection: dbConfig.options?.trustedConnection ?? true,
+      trustedConnection: dbConfig.options?.trustedConnection ?? false,
+      instanceName: dbConfig.options?.instanceName || undefined,
+      cryptoCredentialsDetails: {
+        minVersion: 'TLSv1.2'
+      }
     },
     pool: {
       max: 10,
       min: 0,
       idleTimeoutMillis: 30000,
+      acquireTimeoutMillis: 30000,
     },
   };
 

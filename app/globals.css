@@ -26,6 +26,29 @@ body {
   }
 }
 
+/* Form input, textarea, select text color - make text black for better readability */
+@layer base {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  textarea,
+  select {
+    @apply text-gray-900;
+  }
+  
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-gray-400;
+  }
+}
+
 /* Custom Animations for Service Detail Page */
 @keyframes slideUp {
   from {

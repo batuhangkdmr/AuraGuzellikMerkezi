@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { loginUser } from '../actions';
 
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -19,13 +20,16 @@ export default function LoginForm() {
 
     if (result.success) {
       const role = result.data?.role;
+      // Check for redirect parameter
+      const redirectTo = searchParams.get('redirect');
+      
       // Cookie set edildikten sonra tam sayfa yenileme ile redirect yap
       // Bu, middleware'in cookie'yi görmesini sağlar
       if (role === 'ADMIN') {
-        window.location.href = '/admin';
+        window.location.href = redirectTo || '/admin';
       } else {
-        // USER role için ana sayfaya yönlendir
-        window.location.href = '/';
+        // USER role için redirect parametresine veya ana sayfaya yönlendir
+        window.location.href = redirectTo || '/';
       }
     } else {
       setError(result.error || 'Giriş başarısız!');
@@ -53,7 +57,7 @@ export default function LoginForm() {
           name="email"
           required
           disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 text-gray-900"
           placeholder="E-posta adresinizi girin"
         />
       </div>
@@ -70,7 +74,7 @@ export default function LoginForm() {
           required
           minLength={6}
           disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 text-gray-900"
           placeholder="Şifrenizi girin"
         />
       </div>

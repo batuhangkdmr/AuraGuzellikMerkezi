@@ -282,6 +282,7 @@ export class CategoryRepository {
   // Add category to product
   static async addCategoryToProduct(productId: number, categoryId: number): Promise<boolean> {
     try {
+      // Try with created_at first
       await executeNonQuery(
         `INSERT INTO product_categories (product_id, category_id, created_at)
          VALUES (@productId, @categoryId, GETDATE())`,
@@ -292,6 +293,23 @@ export class CategoryRepository {
       // If duplicate key error, return true (already exists)
       if (error?.number === 2627) {
         return true;
+      }
+      // If created_at column doesn't exist (error 207), try without it
+      if (error?.number === 207) {
+        try {
+          await executeNonQuery(
+            `INSERT INTO product_categories (product_id, category_id)
+             VALUES (@productId, @categoryId)`,
+            { productId, categoryId }
+          );
+          return true;
+        } catch (retryError: any) {
+          // If duplicate key error, return true (already exists)
+          if (retryError?.number === 2627) {
+            return true;
+          }
+          throw retryError;
+        }
       }
       throw error;
     }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/app/context/CartContext';
+import FavoriteButton from './FavoriteButton';
 
 interface ProductCardProps {
   product: {
@@ -44,13 +45,13 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div
-      className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 group"
+      className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Link href={`/products/${product.slug}`} className="block">
+      <Link href={`/products/${product.slug}`} className="block flex-1 flex flex-col">
         {/* Product Image */}
-        <div className="relative h-64 w-full overflow-hidden bg-gray-100">
+        <div className="relative h-48 sm:h-56 lg:h-64 w-full overflow-hidden bg-gray-100">
           <Image
             src={hovered ? hoverImage : mainImage}
             alt={product.name}
@@ -60,6 +61,11 @@ export default function ProductCard({ product }: ProductCardProps) {
             }`}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />
+          
+          {/* Favorite Button */}
+          <div className="absolute top-2 right-2 z-20" onClick={(e) => e.stopPropagation()}>
+            <FavoriteButton productId={product.id} size="md" />
+          </div>
           
           {/* Badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-2">
@@ -84,13 +90,13 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Product Info */}
-        <div className="p-4">
-          <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem]">
+        <div className="p-3 sm:p-4 flex-1 flex flex-col">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-900 mb-1.5 sm:mb-2 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem]">
             {product.name}
           </h3>
           
-          {/* Rating (Mock) */}
-          <div className="flex items-center mb-2">
+          {/* Rating (Mock) - Hidden on mobile */}
+          <div className="hidden sm:flex items-center mb-2">
             <div className="flex text-yellow-400">
               {[...Array(5)].map((_, i) => (
                 <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
@@ -102,14 +108,14 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* Price */}
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mt-auto">
             <div>
-              <span className="text-lg font-bold text-pink-600">
+              <span className="text-base sm:text-lg font-bold text-pink-600">
                 {product.price.toFixed(2)} ₺
               </span>
             </div>
             {product.stock > 0 && (
-              <span className="text-xs text-green-600">Stokta var</span>
+              <span className="hidden sm:inline text-xs text-green-600">Stokta var</span>
             )}
           </div>
         </div>
@@ -117,11 +123,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Add to Cart Button - Outside Link to prevent navigation */}
       {product.stock > 0 && (
-        <div className="p-4 pt-0">
+        <div className="p-3 sm:p-4 pt-0">
           <button
             onClick={handleAddToCart}
             disabled={isAdding}
-            className="w-full bg-pink-600 text-white py-2 px-4 rounded-md hover:bg-pink-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-pink-600 text-white py-2 sm:py-2.5 px-4 rounded-md hover:bg-pink-700 transition-colors font-medium text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isAdding ? 'Ekleniyor...' : 'Sepete Ekle'}
           </button>

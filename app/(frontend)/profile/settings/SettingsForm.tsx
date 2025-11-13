@@ -68,7 +68,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
             minLength={2}
             defaultValue={user.name}
             disabled={loading}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100 text-gray-900"
           />
         </div>
 
@@ -84,7 +84,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
             required
             defaultValue={user.email}
             disabled={loading}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100 text-gray-900"
           />
         </div>
 
@@ -98,7 +98,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
             id="currentPassword"
             name="currentPassword"
             disabled={loading}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100 text-gray-900"
             placeholder="Şifre değiştirmek istemiyorsanız boş bırakın"
           />
         </div>
@@ -113,7 +113,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
             name="newPassword"
             disabled={loading}
             minLength={8}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100 text-gray-900"
             placeholder="En az 8 karakter"
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -131,7 +131,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
             name="confirmPassword"
             disabled={loading}
             minLength={8}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100 text-gray-900"
             placeholder="Yeni şifrenizi tekrar girin"
           />
         </div>
