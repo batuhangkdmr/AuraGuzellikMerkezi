@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { ProductRepository } from '@/lib/repositories/ProductRepository';
 import { CategoryRepository } from '@/lib/repositories/CategoryRepository';
+import { AttributeRepository } from '@/lib/repositories/AttributeRepository';
 import { requireUser } from '@/lib/requireUser';
 import { UserRole } from '@/lib/types/UserRole';
 
@@ -28,11 +29,25 @@ export interface ActionResponse<T = void> {
 
 /**
  * Get all products (public - only active and in stock)
- * Optionally filter by category slug
+ * Optionally filter by category slug, search query, or attribute filters
  */
-export async function getAllProducts(categorySlug?: string) {
+export async function getAllProducts(
+  categorySlug?: string, 
+  searchQuery?: string,
+  attributeFilters?: Record<string, string[]> // attributeSlug -> valueSlug[]
+) {
   try {
     let products = await ProductRepository.findAll(false); // Only active products
+    
+    // Filter by search query if provided
+    if (searchQuery && searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      products = products.filter(product => 
+        product.name.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query) ||
+        product.slug.toLowerCase().includes(query)
+      );
+    }
     
     // Filter by category if provided
     if (categorySlug) {
@@ -65,6 +80,84 @@ export async function getAllProducts(categorySlug?: string) {
           .filter(({ categories }) => 
             categories.some(cat => categoryIds.includes(cat.id))
           )
+          .map(({ product }) => product);
+      }
+    }
+
+    // Filter by attribute values if provided
+    if (attributeFilters && Object.keys(attributeFilters).length > 0) {
+      // Get all attribute slugs and their value slugs
+      const attributeSlugs = Object.keys(attributeFilters);
+      
+      // For each attribute, get the attribute ID and value IDs
+      const attributeValueIds: number[] = [];
+      
+      for (const attrSlug of attributeSlugs) {
+        const attribute = await AttributeRepository.findBySlug(attrSlug, false);
+        if (!attribute) continue;
+        
+        const valueSlugs = attributeFilters[attrSlug];
+        if (!valueSlugs || valueSlugs.length === 0) continue;
+        
+        // Get all values for this attribute
+        const values = await AttributeRepository.getValuesByAttributeId(attribute.id, false);
+        
+        // Find matching value IDs
+        const matchingValueIds = values
+          .filter(v => valueSlugs.includes(v.slug))
+          .map(v => v.id);
+        
+        attributeValueIds.push(...matchingValueIds);
+      }
+      
+      if (attributeValueIds.length > 0) {
+        // Filter products that have at least one of the selected attribute values
+        // For multiple attributes, we need to ensure product has values from ALL attributes
+        const productsWithAttributes = await Promise.all(
+          products.map(async (product) => {
+            const productAttributeValues = await AttributeRepository.getValuesByProductId(product.id);
+            return { product, attributeValues: productAttributeValues };
+          })
+        );
+        
+        // Group attribute filters by attribute
+        const filtersByAttribute: Record<number, number[]> = {};
+        for (const attrSlug of attributeSlugs) {
+          const attribute = await AttributeRepository.findBySlug(attrSlug, false);
+          if (!attribute) continue;
+          
+          const valueSlugs = attributeFilters[attrSlug];
+          if (!valueSlugs || valueSlugs.length === 0) continue;
+          
+          const values = await AttributeRepository.getValuesByAttributeId(attribute.id, false);
+          const matchingValueIds = values
+            .filter(v => valueSlugs.includes(v.slug))
+            .map(v => v.id);
+          
+          if (matchingValueIds.length > 0) {
+            filtersByAttribute[attribute.id] = matchingValueIds;
+          }
+        }
+        
+        // Filter products: product must have at least one value from each attribute filter
+        products = productsWithAttributes
+          .filter(({ attributeValues }) => {
+            // For each attribute filter, check if product has at least one matching value
+            for (const [attrId, requiredValueIds] of Object.entries(filtersByAttribute)) {
+              const productValuesForAttribute = attributeValues.filter(
+                av => av.attributeId === parseInt(attrId)
+              );
+              
+              const hasMatchingValue = productValuesForAttribute.some(
+                pv => requiredValueIds.includes(pv.id)
+              );
+              
+              if (!hasMatchingValue) {
+                return false; // Product doesn't have any value from this attribute filter
+              }
+            }
+            return true; // Product has at least one value from each attribute filter
+          })
           .map(({ product }) => product);
       }
     }
@@ -130,12 +223,24 @@ export async function getProductById(id: number) {
     // Get product categories
     const categories = await CategoryRepository.findByProductId(id);
 
+    // Get product attribute values
+    const attributeValues = await AttributeRepository.getValuesByProductId(id);
+    // Group by attributeId
+    const attributeValuesByAttribute: Record<number, number[]> = {};
+    attributeValues.forEach(value => {
+      if (!attributeValuesByAttribute[value.attributeId]) {
+        attributeValuesByAttribute[value.attributeId] = [];
+      }
+      attributeValuesByAttribute[value.attributeId].push(value.id);
+    });
+
     return {
       success: true,
       data: {
         ...product,
         images: ProductRepository.parseImages(product.images),
         categories: categories,
+        attributeValues: attributeValuesByAttribute,
       },
     };
   } catch (error) {
@@ -234,6 +339,23 @@ export async function createProduct(formData: FormData): Promise<ActionResponse<
     // Set product categories (many-to-many relationship)
     if (validated.categoryIds && validated.categoryIds.length > 0) {
       await CategoryRepository.setProductCategories(product.id, validated.categoryIds);
+    }
+
+    // Get attribute values from formData
+    const attributeValuesData = formData.get('attributeValues');
+    if (attributeValuesData) {
+      try {
+        const parsed = typeof attributeValuesData === 'string' 
+          ? JSON.parse(attributeValuesData) 
+          : attributeValuesData;
+        const attributeValues: Record<number, number[]> = typeof parsed === 'object' && parsed !== null ? parsed : {};
+        
+        // Set product attribute values
+        await ProductRepository.setProductAttributeValues(product.id, attributeValues);
+      } catch (error) {
+        console.error('Error parsing attributeValues JSON:', error);
+        // Don't fail the product creation if attribute values fail
+      }
     }
 
     return {
@@ -368,6 +490,23 @@ export async function updateProduct(
     // Update product categories (many-to-many relationship)
     if (validated.categoryIds !== undefined) {
       await CategoryRepository.setProductCategories(product.id, validated.categoryIds);
+    }
+
+    // Get attribute values from formData
+    const attributeValuesData = formData.get('attributeValues');
+    if (attributeValuesData !== null) {
+      try {
+        const parsed = typeof attributeValuesData === 'string' 
+          ? JSON.parse(attributeValuesData) 
+          : attributeValuesData;
+        const attributeValues: Record<number, number[]> = typeof parsed === 'object' && parsed !== null ? parsed : {};
+        
+        // Set product attribute values (this will delete old ones and add new ones)
+        await ProductRepository.setProductAttributeValues(product.id, attributeValues);
+      } catch (error) {
+        console.error('Error parsing attributeValues JSON:', error);
+        // Don't fail the product update if attribute values fail
+      }
     }
 
     return {

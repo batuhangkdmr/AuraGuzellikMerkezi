@@ -8,12 +8,14 @@ import ImageUpload from '@/components/ImageUpload';
 import { generateSlug } from '@/lib/utils/slug';
 import CategorySelector from '@/components/CategorySelector';
 import { Category } from '@/lib/repositories/CategoryRepository';
+import { AttributeWithValues } from '@/lib/repositories/AttributeRepository';
 
 interface ProductFormProps {
   categories: Category[];
+  attributes: AttributeWithValues[];
 }
 
-export default function ProductForm({ categories }: ProductFormProps) {
+export default function ProductForm({ categories, attributes }: ProductFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +24,8 @@ export default function ProductForm({ categories }: ProductFormProps) {
   const [isSlugManual, setIsSlugManual] = useState(false);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [primaryCategoryId, setPrimaryCategoryId] = useState<number | null>(null);
+  // Attribute values: attributeId -> valueId[]
+  const [selectedAttributeValues, setSelectedAttributeValues] = useState<Record<number, number[]>>({});
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,6 +52,16 @@ export default function ProductForm({ categories }: ProductFormProps) {
       if (primaryCategoryId) {
         formData.set('primaryCategoryId', primaryCategoryId.toString());
       }
+
+      // Set attribute values
+      // Format: attributeValues = { attributeId: [valueId1, valueId2, ...] }
+      const attributeValues: Record<number, number[]> = {};
+      Object.entries(selectedAttributeValues).forEach(([attrId, valueIds]) => {
+        if (valueIds.length > 0) {
+          attributeValues[parseInt(attrId)] = valueIds;
+        }
+      });
+      formData.set('attributeValues', JSON.stringify(attributeValues));
 
       const result = await createProduct(formData);
 
@@ -86,7 +100,7 @@ export default function ProductForm({ categories }: ProductFormProps) {
               setSlug(autoSlug);
             }
           }}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
         />
       </div>
 
@@ -105,7 +119,7 @@ export default function ProductForm({ categories }: ProductFormProps) {
             setIsSlugManual(true);
           }}
           pattern="[a-z0-9-]+"
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
         />
         <p className="text-xs text-gray-500 mt-1">
           Sadece küçük harf, rakam ve tire kullanılabilir
@@ -121,7 +135,7 @@ export default function ProductForm({ categories }: ProductFormProps) {
           name="description"
           required
           rows={4}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
         />
       </div>
 
@@ -137,7 +151,7 @@ export default function ProductForm({ categories }: ProductFormProps) {
             required
             min="0"
             step="0.01"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
           />
         </div>
 
@@ -151,7 +165,7 @@ export default function ProductForm({ categories }: ProductFormProps) {
             name="stock"
             required
             min="0"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
           />
         </div>
       </div>
@@ -164,6 +178,106 @@ export default function ProductForm({ categories }: ProductFormProps) {
         primaryCategoryId={primaryCategoryId}
         onPrimaryCategoryChange={setPrimaryCategoryId}
       />
+
+      {/* Attribute Selector */}
+      {attributes.length > 0 && (
+        <div className="border-t border-gray-200 pt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Ürün Özellikleri (Opsiyonel)</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Bu ürün için özellik değerleri seçebilirsiniz. Hiçbirini seçmeden de ürünü ekleyebilirsiniz.
+          </p>
+          
+          <div className="space-y-6">
+            {attributes.map((attribute) => {
+              const selectedValueIds = selectedAttributeValues[attribute.id] || [];
+              
+              const handleValueToggle = (valueId: number) => {
+                setSelectedAttributeValues(prev => {
+                  const current = prev[attribute.id] || [];
+                  const newValueIds = current.includes(valueId)
+                    ? current.filter(id => id !== valueId)
+                    : [...current, valueId];
+                  
+                  return {
+                    ...prev,
+                    [attribute.id]: newValueIds,
+                  };
+                });
+              };
+
+              return (
+                <div key={attribute.id} className="border border-gray-200 rounded-lg p-4">
+                  <label className="block text-sm font-medium text-gray-900 mb-3">
+                    {attribute.name}
+                    {attribute.type === 'color' && <span className="text-xs text-gray-500 ml-2">(Renk)</span>}
+                  </label>
+                  
+                  {attribute.values.length === 0 ? (
+                    <p className="text-sm text-gray-500 italic">
+                      Bu özellik için henüz değer eklenmemiş. <a href={`/admin/attributes/${attribute.id}/edit`} target="_blank" className="text-pink-600 hover:text-pink-700">Değer eklemek için tıklayın</a>.
+                    </p>
+                  ) : attribute.type === 'color' ? (
+                    // Color swatches
+                    <div className="flex flex-wrap gap-3">
+                      {attribute.values.map((value) => (
+                        <label
+                          key={value.id}
+                          className="flex flex-col items-center cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedValueIds.includes(value.id)}
+                            onChange={() => handleValueToggle(value.id)}
+                            className="sr-only"
+                          />
+                          <div
+                            className={`w-12 h-12 rounded-full border-2 transition-all ${
+                              selectedValueIds.includes(value.id)
+                                ? 'border-pink-600 ring-2 ring-pink-200 scale-110'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                            style={{
+                              backgroundColor: value.colorCode || '#ccc',
+                            }}
+                            title={value.value}
+                          />
+                          <span className="text-xs text-gray-600 mt-1 text-center max-w-[60px] truncate">
+                            {value.value}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    // Checkbox list for text/number/boolean
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {attribute.values.map((value) => (
+                        <label
+                          key={value.id}
+                          className="flex items-center space-x-2 cursor-pointer py-1 hover:bg-gray-50 rounded px-2"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedValueIds.includes(value.id)}
+                            onChange={() => handleValueToggle(value.id)}
+                            className="w-4 h-4 text-pink-600 focus:ring-pink-500 rounded"
+                          />
+                          <span className="text-sm text-gray-700">{value.value}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {selectedValueIds.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      {selectedValueIds.length} değer seçildi
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div>
         <label className="block text-gray-700 font-medium mb-2">

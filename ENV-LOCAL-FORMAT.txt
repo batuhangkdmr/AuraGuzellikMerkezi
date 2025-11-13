@@ -1,0 +1,38 @@
+# .env.local dosyası için DATABASE_URL formatları
+# Aşağıdaki formatlardan birini kullanın
+
+# ============================================
+# SEÇENEK 1: Named Instance Format (Önerilen)
+# ============================================
+# Eğer .\MSSQLSERVER2019 bir named instance ise:
+DATABASE_URL="Server=.\\MSSQLSERVER2019;Database=sitenhaz_sitenhazirDb;User Id=sitenhaz_sitenhazir;Password=H2!Zh86dzxrp@Mbw;Encrypt=true;TrustServerCertificate=true;"
+
+# ============================================
+# SEÇENEK 2: Port ile Format
+# ============================================
+# Eğer :0 default port (1433) anlamına geliyorsa ve .\ yerine gerçek bir domain/IP varsa:
+# NOT: .\ yerine gerçek host adresini yazmanız gerekebilir (örn: sql.guzelnet.com veya IP adresi)
+# DATABASE_URL="Server=HOST_ADRESI,1433;Database=sitenhaz_sitenhazirDb;User Id=sitenhaz_sitenhazir;Password=H2!Zh86dzxrp@Mbw;Encrypt=true;TrustServerCertificate=true;"
+
+# ============================================
+# SEÇENEK 3: ASP.NET Core Format
+# ============================================
+# Eğer ASP.NET Core formatını tercih ederseniz:
+# DATABASE_URL="Data Source=.\\MSSQLSERVER2019;Initial Catalog=sitenhaz_sitenhazirDb;User ID=sitenhaz_sitenhazir;Password=H2!Zh86dzxrp@Mbw;Encrypt=True;TrustServerCertificate=True;"
+
+# ============================================
+# ÖNEMLİ NOTLAR:
+# ============================================
+# 1. .\ genellikle local server anlamına gelir
+#    Remote hosting için muhtemelen gerçek bir domain/IP adresi olmalı
+#    Örnek: sql.guzelnet.com veya 123.45.67.89
+#
+# 2. :0 genellikle default port (1433) anlamına gelir
+#    Port belirtmek isterseniz: Server=HOST,1433
+#
+# 3. Şifrede özel karakterler (!, @, vb.) var, bu yüzden tırnak içinde yazılmalı
+#
+# 4. İlk önce SEÇENEK 1'i deneyin
+#    Eğer çalışmazsa, Güzelnet panelinden gerçek host adresini öğrenin
+#    ve SEÇENEK 2'yi kullanın
+

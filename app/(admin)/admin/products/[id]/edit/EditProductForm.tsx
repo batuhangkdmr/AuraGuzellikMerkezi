@@ -133,7 +133,7 @@ export default function EditProductForm({ productId }: EditProductFormProps) {
                   setSlug(autoSlug);
                 }
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
             />
           </div>
 
@@ -152,7 +152,7 @@ export default function EditProductForm({ productId }: EditProductFormProps) {
                 setSlug(e.target.value);
                 setIsSlugManual(true);
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
             />
             <div className="flex items-center justify-between mt-1">
               <p className="text-sm text-gray-500">
@@ -190,7 +190,7 @@ export default function EditProductForm({ productId }: EditProductFormProps) {
               required
               rows={5}
               defaultValue={product.description}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
             />
           </div>
 
@@ -207,7 +207,7 @@ export default function EditProductForm({ productId }: EditProductFormProps) {
                 min="0"
                 step="0.01"
                 defaultValue={product.price}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
               />
             </div>
 
@@ -222,7 +222,7 @@ export default function EditProductForm({ productId }: EditProductFormProps) {
                 required
                 min="0"
                 defaultValue={product.stock}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
               />
             </div>
           </div>

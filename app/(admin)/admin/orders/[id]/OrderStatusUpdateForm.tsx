@@ -92,7 +92,7 @@ export default function OrderStatusUpdateForm({
             value={status}
             onChange={(e) => setStatus(e.target.value as OrderStatus)}
             disabled={loading}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
           >
             {statusOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -114,7 +114,7 @@ export default function OrderStatusUpdateForm({
               onChange={(e) => setTrackingNumber(e.target.value)}
               placeholder="Örn: ABC123456789"
               disabled={loading}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
             />
             <p className="text-xs text-gray-500 mt-1">
               Kargo takip numarası zorunludur
@@ -133,7 +133,7 @@ export default function OrderStatusUpdateForm({
             placeholder="Durum değişikliği hakkında not ekleyin..."
             rows={3}
             disabled={loading}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
           />
         </div>
 
