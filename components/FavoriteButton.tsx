@@ -43,9 +43,11 @@ export default function FavoriteButton({
 
   // Listen for favorite changes from other components
   useEffect(() => {
-    const handleFavoriteChange = async (event: CustomEvent) => {
-      if (event.detail?.productId === productId) {
-        setFavorited(event.detail.isFavorite);
+    const handleFavoriteChange = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ productId: number; isFavorite: boolean }>;
+      
+      if (customEvent.detail?.productId === productId) {
+        setFavorited(customEvent.detail.isFavorite);
       } else {
         // Re-check favorite status
         try {
@@ -59,8 +61,8 @@ export default function FavoriteButton({
       }
     };
 
-    window.addEventListener('favoriteChanged', handleFavoriteChange as EventListener);
-    return () => window.removeEventListener('favoriteChanged', handleFavoriteChange as EventListener);
+    window.addEventListener('favoriteChanged', handleFavoriteChange);
+    return () => window.removeEventListener('favoriteChanged', handleFavoriteChange);
   }, [productId]);
 
   const handleToggle = async (e: React.MouseEvent) => {
