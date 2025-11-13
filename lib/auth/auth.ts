@@ -5,7 +5,8 @@
 import bcrypt from 'bcryptjs';
 
 // Re-export JWT types and functions from jwt.ts for backward compatibility
-export { JwtPayload, createToken, verifyToken } from './jwt';
+export type { JwtPayload } from './jwt';
+export { createToken, verifyToken } from './jwt';
 
 /**
  * Şifreyi hash'le (bcrypt)
