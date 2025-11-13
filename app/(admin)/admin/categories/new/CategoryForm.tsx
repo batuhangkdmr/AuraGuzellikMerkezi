@@ -91,7 +91,7 @@ export default function CategoryForm({ categories }: CategoryFormProps) {
               setSlug(autoSlug);
             }
           }}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
         />
       </div>
 
@@ -110,7 +110,7 @@ export default function CategoryForm({ categories }: CategoryFormProps) {
             setIsSlugManual(true);
           }}
           pattern="[a-z0-9-]+"
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
         />
         <p className="text-xs text-gray-500 mt-1">
           Sadece küçük harf, rakam ve tire kullanılabilir
@@ -126,7 +126,7 @@ export default function CategoryForm({ categories }: CategoryFormProps) {
           name="parentId"
           value={parentId || ''}
           onChange={(e) => setParentId(e.target.value ? parseInt(e.target.value, 10) : null)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
         >
           <option value="">Ana Kategori (Üst kategori yok)</option>
           {flatCategories.map((cat) => (
@@ -167,7 +167,7 @@ export default function CategoryForm({ categories }: CategoryFormProps) {
           name="displayOrder"
           min="0"
           defaultValue="0"
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
         />
         <p className="text-xs text-gray-500 mt-1">
           Menülerde görüntülenme sırası (küçük sayılar önce görünür)

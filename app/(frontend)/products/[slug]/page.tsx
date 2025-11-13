@@ -2,6 +2,7 @@ import { getProductBySlug } from '@/app/server-actions/productActions';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import AddToCartButton from './AddToCartButton';
+import FavoriteButton from '@/components/FavoriteButton';
 
 export default async function ProductDetailPage({
   params,
@@ -33,11 +34,20 @@ export default async function ProductDetailPage({
                 sizes="(max-width: 768px) 100vw, 50vw"
                 priority
               />
+              {/* Favorite Button */}
+              <div className="absolute top-4 right-4">
+                <FavoriteButton productId={product.id} size="lg" />
+              </div>
             </div>
 
             {/* Product Info */}
             <div className="flex flex-col">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
+              <div className="flex items-start justify-between mb-4">
+                <h1 className="text-3xl font-bold text-gray-900 flex-1">{product.name}</h1>
+                <div className="ml-4">
+                  <FavoriteButton productId={product.id} size="lg" />
+                </div>
+              </div>
               
               <div className="mb-6">
                 <span className="text-4xl font-bold text-pink-600">

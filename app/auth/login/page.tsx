@@ -11,7 +11,7 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             Aura Güzellik
           </h1>
-          <p className="text-gray-600">Admin Paneli Girişi</p>
+          <p className="text-gray-600">Giriş Yap</p>
         </div>
 
         {/* Login Formu */}

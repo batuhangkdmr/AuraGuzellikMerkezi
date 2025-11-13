@@ -1,4 +1,5 @@
 import { getCategoryTree } from '@/app/server-actions/categoryActions';
+import { getAllAttributesWithValues } from '@/app/server-actions/attributeActions';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import EditProductFormWithCategories from './EditProductFormWithCategories';
@@ -15,9 +16,14 @@ export default async function EditProductPage({
     notFound();
   }
 
-  // Load categories for selection (server-side)
-  const result = await getCategoryTree(true); // Include inactive for admin
-  const categories = result.success && result.data ? result.data : [];
+  // Load categories and attributes for selection (server-side)
+  const [categoriesResult, attributesResult] = await Promise.all([
+    getCategoryTree(true), // Include inactive for admin
+    getAllAttributesWithValues(false), // Only active attributes
+  ]);
+  
+  const categories = categoriesResult.success && categoriesResult.data ? categoriesResult.data : [];
+  const attributes = attributesResult.success && attributesResult.data ? attributesResult.data : [];
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -32,7 +38,7 @@ export default async function EditProductPage({
           </Link>
         </div>
 
-        <EditProductFormWithCategories productId={productId} categories={categories} />
+        <EditProductFormWithCategories productId={productId} categories={categories} attributes={attributes} />
       </div>
     </div>
   );

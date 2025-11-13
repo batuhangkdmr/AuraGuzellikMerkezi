@@ -12,7 +12,7 @@ export default function RandevuPage() {
               </label>
               <input
                 type="text"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent text-gray-900"
                 placeholder="Adınız Soyadınız"
               />
             </div>
@@ -23,7 +23,7 @@ export default function RandevuPage() {
               </label>
               <input
                 type="tel"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent text-gray-900"
                 placeholder="+90 XXX XXX XX XX"
               />
             </div>
@@ -34,7 +34,7 @@ export default function RandevuPage() {
               </label>
               <input
                 type="email"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent text-gray-900"
                 placeholder="ornek@email.com"
               />
             </div>
@@ -57,7 +57,7 @@ export default function RandevuPage() {
                 </label>
                 <input
                   type="date"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent text-gray-900"
                 />
               </div>
               
@@ -67,7 +67,7 @@ export default function RandevuPage() {
                 </label>
                 <input
                   type="time"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent text-gray-900"
                 />
               </div>
             </div>
@@ -78,7 +78,7 @@ export default function RandevuPage() {
               </label>
               <textarea
                 rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent text-gray-900"
                 placeholder="Özel bir isteğiniz varsa buraya yazabilirsiniz..."
               ></textarea>
             </div>

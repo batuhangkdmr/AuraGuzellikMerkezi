@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "setup-db": "tsx scripts/setup-database.ts",
-    "check-tables": "tsx scripts/check-tables.ts"
+    "check-tables": "tsx scripts/check-tables.ts",
+    "export-db": "tsx scripts/export-database.ts",
+    "import-db": "tsx scripts/import-database.ts",
+    "create-missing-tables": "tsx scripts/create-missing-tables.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

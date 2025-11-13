@@ -61,6 +61,9 @@ export default async function AdminLayout({
               <Link href="/admin/products" className="hover:text-pink-400 transition">
                 Ürünler
               </Link>
+              <Link href="/admin/attributes" className="hover:text-pink-400 transition">
+                Ürün Özellikleri
+              </Link>
               <Link href="/admin/orders" className="hover:text-pink-400 transition">
                 Siparişler
               </Link>

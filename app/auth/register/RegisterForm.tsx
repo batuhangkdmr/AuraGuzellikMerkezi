@@ -67,7 +67,7 @@ export default function RegisterForm() {
           required
           minLength={2}
           disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 text-gray-900"
           placeholder="Adınızı ve soyadınızı girin"
         />
       </div>
@@ -83,7 +83,7 @@ export default function RegisterForm() {
           name="email"
           required
           disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 text-gray-900"
           placeholder="ornek@domain.com"
         />
       </div>
@@ -99,7 +99,7 @@ export default function RegisterForm() {
           value={role}
           onChange={(e) => setRole(e.target.value as UserRole)}
           disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 text-gray-900"
         >
           <option value={UserRole.USER}>Kullanıcı</option>
           <option value={UserRole.ADMIN}>Yönetici</option>
@@ -118,7 +118,7 @@ export default function RegisterForm() {
           required
           minLength={8}
           disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 text-gray-900"
           placeholder="En az 8 karakter, büyük harf, küçük harf ve rakam içermeli"
         />
         <p className="text-xs text-gray-500 mt-1">
@@ -138,7 +138,7 @@ export default function RegisterForm() {
           required
           minLength={8}
           disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 text-gray-900"
           placeholder="Şifrenizi tekrar girin"
         />
       </div>
@@ -155,7 +155,7 @@ export default function RegisterForm() {
             name="secretKey"
             required
             disabled={loading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 text-gray-900"
             placeholder="Yönetici anahtarını girin"
           />
           <p className="text-xs text-gray-500 mt-1">

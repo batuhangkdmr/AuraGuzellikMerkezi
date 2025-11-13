@@ -18,7 +18,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-import { executeQuery, getConnection, closeConnection } from '../lib/db';
+import { executeQuery, getConnection, closeConnection } from '../lib/db-setup';
 
 async function checkTables() {
   try {

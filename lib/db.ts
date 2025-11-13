@@ -67,10 +67,13 @@ function parseDatabaseUrl() {
     const config: any = {
       server: 'localhost',
       database: '',
+      user: '',
+      password: '',
       options: {
         encrypt: false,
         trustServerCertificate: true,
         enableArithAbort: true,
+        trustedConnection: false,
       },
     };
 
@@ -80,7 +83,7 @@ function parseDatabaseUrl() {
       const keyLower = key.trim().toLowerCase();
 
       if (keyLower === 'data source' || keyLower === 'server') {
-        // Parse server and instance (e.g., "(localdb)\MSSQLLocalDB" or "localhost\MSSQLSERVER01" or "localhost,1433")
+        // Parse server and instance (e.g., "(localdb)\MSSQLLocalDB" or "localhost\MSSQLSERVER01" or "localhost,1433" or "IP\Instance")
         const serverValue = value.trim();
         
         // Check if port is specified (e.g., "localhost,1433")
@@ -100,15 +103,30 @@ function parseDatabaseUrl() {
             config.options.instanceName = 'MSSQLLocalDB';
           }
         } else if (serverValue.includes('\\')) {
-          // Named instance (e.g., "localhost\MSSQLSERVER01")
-          const parts = serverValue.split('\\');
-          if (parts.length === 2) {
-            config.server = parts[0] === 'localhost' ? 'localhost' : parts[0];
-            config.options.instanceName = parts[1];
-            // For named instances, don't use port
-            config.port = undefined;
+          // Named instance (e.g., "localhost\MSSQLSERVER01" or "104.247.167.194\MSSQLSERVER2019")
+          // Check if port is also specified: "IP\Instance,Port"
+          if (serverValue.includes(',')) {
+            // Format: "IP\Instance,Port"
+            const [instancePart, portPart] = serverValue.split(',');
+            const instanceParts = instancePart.split('\\');
+            if (instanceParts.length === 2) {
+              config.server = instanceParts[0].trim();
+              config.options.instanceName = instanceParts[1].trim();
+              config.port = parseInt(portPart.trim(), 10);
+            } else {
+              config.server = serverValue;
+            }
           } else {
-            config.server = serverValue;
+            // Format: "IP\Instance" (no port)
+            const parts = serverValue.split('\\');
+            if (parts.length === 2) {
+              config.server = parts[0].trim();
+              config.options.instanceName = parts[1].trim();
+              // For named instances without port, don't use port (will try SQL Server Browser)
+              config.port = undefined;
+            } else {
+              config.server = serverValue;
+            }
           }
         } else {
           config.server = serverValue;
@@ -116,15 +134,15 @@ function parseDatabaseUrl() {
       } else if (keyLower === 'initial catalog' || keyLower === 'database') {
         config.database = value;
       } else if (keyLower === 'integrated security') {
-        config.options.trustedConnection = value.toLowerCase() === 'true';
-      } else if (keyLower === 'user id' || keyLower === 'uid') {
+        config.options.trustedConnection = value.toLowerCase() === 'true' || value.toLowerCase() === 'yes';
+      } else if (keyLower === 'user id' || keyLower === 'uid' || keyLower === 'user') {
         config.user = value;
       } else if (keyLower === 'password' || keyLower === 'pwd') {
         config.password = value;
       } else if (keyLower === 'encrypt') {
-        config.options.encrypt = value.toLowerCase() === 'true';
-      } else if (keyLower === 'trust server certificate') {
-        config.options.trustServerCertificate = value.toLowerCase() === 'true';
+        config.options.encrypt = value.toLowerCase() === 'true' || value.toLowerCase() === 'yes';
+      } else if (keyLower === 'trust server certificate' || keyLower === 'trustservercertificate') {
+        config.options.trustServerCertificate = value.toLowerCase() === 'true' || value.toLowerCase() === 'yes';
       }
     }
 
@@ -161,11 +179,17 @@ function parseDatabaseUrl() {
 let sqlConfig: any = null;
 
 function getSqlConfig(): any {
+  // Always parse fresh config (in case DATABASE_URL changed)
+  const dbConfig = parseDatabaseUrl();
+  
+  // Reset config if DATABASE_URL changed
+  if (sqlConfig && sqlConfig.server !== dbConfig.server) {
+    sqlConfig = null;
+  }
+  
   if (sqlConfig) {
     return sqlConfig;
   }
-
-  const dbConfig = parseDatabaseUrl();
 
   // Check if this is LocalDB
   const isLocalDB = dbConfig.options?.instanceName === 'MSSQLLocalDB' || 
@@ -215,81 +239,66 @@ function getSqlConfig(): any {
     sql = require('mssql');
   }
   
-  // Check if this is a named instance (contains backslash) but not LocalDB
-  const isNamedInstance = (dbConfig.server.includes('\\') || dbConfig.options?.instanceName) && 
+  // Check if this is a named instance (has instanceName option) but not LocalDB
+  const isNamedInstance = dbConfig.options?.instanceName && 
                           dbConfig.options?.instanceName !== 'MSSQLLocalDB';
   
-  // For named instances, we need to find the TCP/IP port
-  // tedious doesn't support SQL Server Browser, so we need the actual port
-  if (isNamedInstance) {
-    sqlConfig = {
-      server: dbConfig.server.includes('\\') ? dbConfig.server.split('\\')[0] : dbConfig.server,
-      database: dbConfig.database,
-      options: {
-        instanceName: dbConfig.options?.instanceName || (dbConfig.server.includes('\\') ? dbConfig.server.split('\\')[1] : undefined),
-        encrypt: false,
-        trustServerCertificate: true,
-        enableArithAbort: true,
-        trustedConnection: true,
-      },
-      pool: {
-        max: 10,
-        min: 0,
-        idleTimeoutMillis: 30000,
-      },
-    };
-    sqlConfig.port = undefined;
-  } else {
-    // Create mssql config for regular SQL Server
-    sqlConfig = {
-      server: dbConfig.server,
-      database: dbConfig.database,
-      options: {
-        encrypt: dbConfig.options?.encrypt || false,
-        trustServerCertificate: dbConfig.options?.trustServerCertificate ?? true,
-        enableArithAbort: true,
-      },
-      pool: {
-        max: 10,
-        min: 0,
-        idleTimeoutMillis: 30000,
-      },
-    };
+  // Create mssql config for SQL Server
+  sqlConfig = {
+    server: dbConfig.server,
+    database: dbConfig.database,
+    user: dbConfig.user || undefined,
+    password: dbConfig.password || undefined,
+    connectionTimeout: 30000, // 30 seconds
+    requestTimeout: 30000, // 30 seconds
+    options: {
+      encrypt: dbConfig.options?.encrypt || false,
+      trustServerCertificate: dbConfig.options?.trustServerCertificate ?? true,
+      enableArithAbort: true,
+      trustedConnection: dbConfig.options?.trustedConnection ?? false,
+      instanceName: dbConfig.options?.instanceName || undefined,
+      cryptoCredentialsDetails: {
+        minVersion: 'TLSv1.2'
+      }
+    },
+    pool: {
+      max: 10,
+      min: 0,
+      idleTimeoutMillis: 30000,
+      acquireTimeoutMillis: 30000,
+    },
+  };
 
-    // Add instance name if present (for named instances)
-    if (dbConfig.options?.instanceName && sqlConfig.options) {
-      sqlConfig.options.instanceName = dbConfig.options.instanceName;
-      // Don't use port when using named instance
-      sqlConfig.port = undefined;
-    } else if (dbConfig.port) {
-      // Use explicit port if specified (e.g., from "localhost,1433" format)
+  // For named instances, tedious needs SQL Server Browser to find the port
+  // SQL Server Browser uses UDP port 1434
+  // If SQL Server Browser is not available, we need to specify the port explicitly
+  if (isNamedInstance) {
+    // Use port if specified in connection string (e.g., "IP\Instance,Port")
+    // Otherwise, don't set port - let tedious try SQL Server Browser
+    // If SQL Server Browser is not available and no port specified, this will fail
+    if (dbConfig.port) {
       sqlConfig.port = dbConfig.port;
     } else {
-      // Default to 1433 for default instance if no port specified
-      sqlConfig.port = 1433;
+      sqlConfig.port = undefined;
     }
-
-    // Add authentication
-    if (sqlConfig.options) {
-      if (dbConfig.options?.trustedConnection) {
-        // Windows Authentication - use trustedConnection option
-        sqlConfig.options.trustedConnection = true;
-      } else if (dbConfig.user && dbConfig.password) {
-        // SQL Authentication
-        sqlConfig.user = dbConfig.user;
-        sqlConfig.password = dbConfig.password;
-        sqlConfig.options.trustedConnection = false;
-      } else {
-        // Default to Windows Authentication if not specified
-        sqlConfig.options.trustedConnection = true;
-      }
-    }
-
-    // Add port if specified and no instance name
-    if (dbConfig.port && !dbConfig.options?.instanceName) {
-      sqlConfig.port = dbConfig.port;
-    }
+  } else if (dbConfig.port) {
+    // Use explicit port if specified
+    sqlConfig.port = dbConfig.port;
+  } else {
+    // Default to 1433 only if no instance name and no port specified
+    sqlConfig.port = 1433;
   }
+
+  // Debug: Log connection config (without password)
+  console.log('🔍 SQL Connection Config:', {
+    server: sqlConfig.server,
+    database: sqlConfig.database,
+    user: sqlConfig.user,
+    port: sqlConfig.port,
+    instanceName: sqlConfig.options?.instanceName,
+    encrypt: sqlConfig.options?.encrypt,
+    trustedConnection: sqlConfig.options?.trustedConnection,
+  });
 
   if (!sqlConfig) {
     throw new Error('Failed to create SQL config');
