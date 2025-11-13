@@ -1,9 +1,9 @@
 // Database connection for setup scripts (no server-only import)
 // This file is used by setup scripts that run outside Next.js runtime
+// Uses tedious driver (mssql) for all connections (Vercel-compatible)
 
 import type * as SqlTypes from 'mssql';
-let sql: any;
-let usingMsnodesqlv8 = false;
+import sql from 'mssql';
 
 // Parse DATABASE_URL from environment
 function parseDatabaseUrl() {
@@ -110,40 +110,9 @@ function getSqlConfig(): any {
 
   const dbConfig = parseDatabaseUrl();
 
-  // Check if this is LocalDB
-  const isLocalDB = dbConfig.options?.instanceName === 'MSSQLLocalDB' || 
-                    (dbConfig.server === 'localhost' && dbConfig.options?.instanceName === 'MSSQLLocalDB');
-  
-  // For LocalDB, use msnodesqlv8 driver
-  if (isLocalDB) {
-    try {
-      sql = require('mssql/msnodesqlv8');
-      usingMsnodesqlv8 = true;
-      
-      const instanceName = dbConfig.options?.instanceName || 'MSSQLLocalDB';
-      const database = dbConfig.database || 'auraguzellikmerkezi2';
-      
-      const connectionString = `Driver={ODBC Driver 17 for SQL Server};Server=(localdb)\\${instanceName};Database=${database};Trusted_Connection=Yes;`;
-      
-      sqlConfig = {
-        connectionString,
-        options: {
-          encrypt: false,
-          trustServerCertificate: true,
-        },
-      } as any;
-      
-      return sqlConfig;
-    } catch (error) {
-      console.error('Failed to load msnodesqlv8 driver for LocalDB:', error);
-      throw new Error('LocalDB connection requires msnodesqlv8 driver. Please install it: npm install msnodesqlv8');
-    }
-  }
-  
-  // For regular SQL Server, use tedious driver
-  if (!sql) {
-    sql = require('mssql');
-  }
+  // Use tedious driver for all connections (Vercel-compatible)
+  // Note: LocalDB connections are not supported in production
+  // All connections should use remote SQL Server with TCP/IP
 
   sqlConfig = {
     server: dbConfig.server,

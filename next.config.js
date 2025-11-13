@@ -10,12 +10,11 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ['msnodesqlv8', 'mssql'],
+    serverComponentsExternalPackages: ['mssql'],
   },
   webpack: (config, { isServer }) => {
     config.externals = config.externals || [];
     config.externals.push({
-      msnodesqlv8: 'commonjs msnodesqlv8',
       mssql: 'commonjs mssql',
       tedious: 'commonjs tedious',
       'node:events': 'commonjs node:events',
