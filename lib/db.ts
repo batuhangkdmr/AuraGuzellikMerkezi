@@ -7,11 +7,24 @@ import sql from 'mssql';
 
 // Parse DATABASE_URL from environment
 // Supports ASP.NET Core format: Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=dbname;Integrated Security=True;
+// Also supports separate environment variables: DB_SERVER, DB_DATABASE, DB_USER, DB_PASSWORD
 function parseDatabaseUrl() {
-  const dbUrl = process.env.DATABASE_URL;
+  // First, try to use DATABASE_URL if it exists
+  let dbUrl = process.env.DATABASE_URL;
   
+  // If DATABASE_URL doesn't exist, try to build it from separate variables
   if (!dbUrl) {
-    throw new Error('DATABASE_URL environment variable is not set');
+    const dbServer = process.env.DB_SERVER;
+    const dbDatabase = process.env.DB_DATABASE;
+    const dbUser = process.env.DB_USER;
+    const dbPassword = process.env.DB_PASSWORD;
+    
+    if (dbServer && dbDatabase && dbUser && dbPassword) {
+      // Build connection string from separate variables
+      dbUrl = `Server=${dbServer};Database=${dbDatabase};User Id=${dbUser};Password=${dbPassword};`;
+    } else {
+      throw new Error('DATABASE_URL or DB_SERVER/DB_DATABASE/DB_USER/DB_PASSWORD environment variables must be set');
+    }
   }
 
   // Check if it's simple Server= format (Node.js style)
