@@ -22,7 +22,7 @@ export default function CancelOrderButton({ orderId }: CancelOrderButtonProps) {
     setError(null);
 
     try {
-      const result = await cancelOrder(orderId);
+      const result = await cancelOrder(orderId, { initiatedBy: 'ADMIN' });
 
       if (result.success) {
         alert('Sipariş başarıyla iptal edildi. Stoklar geri eklendi.');

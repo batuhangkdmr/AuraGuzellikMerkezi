@@ -47,7 +47,7 @@ export default function ProductFilters({
         <h3 className="font-semibold text-gray-900">Filtreler</h3>
         <button
           onClick={onReset}
-          className="text-sm text-pink-600 hover:text-pink-700"
+          className="text-sm text-primary-blue hover:text-primary-blue-dark"
         >
           Temizle
         </button>
@@ -69,7 +69,7 @@ export default function ProductFilters({
                 value={category.slug}
                 checked={selectedCategory === category.slug}
                 onChange={(e) => onCategoryChange(e.target.value)}
-                className="w-4 h-4 text-pink-600 focus:ring-pink-500"
+                className="w-4 h-4 text-primary-blue focus:ring-primary-blue"
               />
               <span className="text-sm text-gray-700">{category.displayName}</span>
             </label>
@@ -105,7 +105,7 @@ export default function ProductFilters({
           </div>
           <button
             type="submit"
-            className="w-full bg-pink-600 text-white py-2 px-4 rounded-md hover:bg-pink-700 transition-colors text-sm"
+            className="w-full bg-primary-blue text-white py-2 px-4 rounded-md hover:bg-primary-blue-dark transition-colors text-sm"
           >
             Uygula
           </button>
@@ -119,14 +119,14 @@ export default function ProductFilters({
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
               type="checkbox"
-              className="w-4 h-4 text-pink-600 focus:ring-pink-500"
+              className="w-4 h-4 text-primary-blue focus:ring-primary-blue"
             />
             <span className="text-sm text-gray-700">Stokta var</span>
           </label>
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
               type="checkbox"
-              className="w-4 h-4 text-pink-600 focus:ring-pink-500"
+              className="w-4 h-4 text-primary-blue focus:ring-primary-blue"
             />
             <span className="text-sm text-gray-700">Stokta yok</span>
           </label>

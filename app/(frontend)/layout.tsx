@@ -9,7 +9,7 @@ export default function FrontendLayout({
   return (
     <>
       <Navbar />
-      <main className="min-h-screen">
+      <main className="min-h-screen bg-primary-blue">
         {children}
       </main>
       <Footer />

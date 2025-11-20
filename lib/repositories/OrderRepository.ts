@@ -38,20 +38,60 @@ export interface OrderWithItems extends Order {
   items: OrderItem[];
 }
 
+async function ensureTrackingNumberColumn(): Promise<void> {
+  try {
+    await executeNonQuery(`
+      IF EXISTS (
+        SELECT * FROM sys.tables WHERE name = 'orders'
+      )
+      BEGIN
+        IF NOT EXISTS (
+          SELECT * FROM sys.columns
+          WHERE object_id = OBJECT_ID(N'dbo.orders')
+            AND name = 'tracking_number'
+        )
+        BEGIN
+          ALTER TABLE dbo.orders ADD tracking_number NVARCHAR(100) NULL;
+        END
+      END
+    `);
+  } catch (error) {
+    console.warn('tracking_number column check/creation skipped:', error);
+  }
+}
+
 export class OrderRepository {
   // Find order by ID
   static async findById(id: number): Promise<OrderWithItems | null> {
-    // Get dates as strings to avoid timezone conversion issues
-    const order = await executeQueryOne<any>(
-      `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
-              tracking_number as trackingNumber,
-              CONVERT(VARCHAR(23), created_at, 126) as createdAt,
-              CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
-              CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
-       FROM orders WHERE id = @id`,
-      { id }
-    );
-    
+    let order: any = null;
+
+    try {
+      order = await executeQueryOne<any>(
+        `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
+                tracking_number as trackingNumber,
+                CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+                CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
+                CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
+         FROM orders WHERE id = @id`,
+        { id }
+      );
+    } catch (error: any) {
+      if (error?.number === 207) {
+        await ensureTrackingNumberColumn();
+        order = await executeQueryOne<any>(
+          `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
+                  tracking_number as trackingNumber,
+                  CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+                  CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
+                  CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
+           FROM orders WHERE id = @id`,
+          { id }
+        );
+      } else {
+        throw error;
+      }
+    }
+
     if (!order) return null;
     
     // Parse dates manually to avoid timezone issues
@@ -88,17 +128,37 @@ export class OrderRepository {
 
   // Find orders by user ID
   static async findByUserId(userId: number): Promise<Order[]> {
-    const orders = await executeQuery<any>(
-      `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
-              tracking_number as trackingNumber,
-              CONVERT(VARCHAR(23), created_at, 126) as createdAt,
-              CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
-              CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
-       FROM orders WHERE user_id = @userId
-       ORDER BY created_at DESC`,
-      { userId }
-    );
-    
+    let orders: any[] = [];
+
+    try {
+      orders = await executeQuery<any>(
+        `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
+                tracking_number as trackingNumber,
+                CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+                CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
+                CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
+         FROM orders WHERE user_id = @userId
+         ORDER BY created_at DESC`,
+        { userId }
+      );
+    } catch (error: any) {
+      if (error?.number === 207) {
+        await ensureTrackingNumberColumn();
+        orders = await executeQuery<any>(
+          `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
+                  tracking_number as trackingNumber,
+                  CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+                  CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
+                  CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
+           FROM orders WHERE user_id = @userId
+           ORDER BY created_at DESC`,
+          { userId }
+        );
+      } else {
+        throw error;
+      }
+    }
+
     // Parse dates manually
     const parseSqlDate = (dateStr: string | null): Date | null => {
       if (!dateStr) return null;
@@ -115,16 +175,35 @@ export class OrderRepository {
 
   // Find all orders (admin)
   static async findAll(): Promise<Order[]> {
-    const orders = await executeQuery<any>(
-      `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
-              tracking_number as trackingNumber,
-              CONVERT(VARCHAR(23), created_at, 126) as createdAt,
-              CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
-              CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
-       FROM orders
-       ORDER BY created_at DESC`
-    );
-    
+    let orders: any[] = [];
+
+    try {
+      orders = await executeQuery<any>(
+        `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
+                tracking_number as trackingNumber,
+                CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+                CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
+                CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
+         FROM orders
+         ORDER BY created_at DESC`
+      );
+    } catch (error: any) {
+      if (error?.number === 207) {
+        await ensureTrackingNumberColumn();
+        orders = await executeQuery<any>(
+          `SELECT id, user_id as userId, total, status, shipping_address_json as shippingAddressJson,
+                  tracking_number as trackingNumber,
+                  CONVERT(VARCHAR(23), created_at, 126) as createdAt,
+                  CONVERT(VARCHAR(23), updated_at, 126) as updatedAt,
+                  CASE WHEN confirmed_at IS NULL THEN NULL ELSE CONVERT(VARCHAR(23), confirmed_at, 126) END as confirmedAt
+           FROM orders
+           ORDER BY created_at DESC`
+        );
+      } else {
+        throw error;
+      }
+    }
+
     // Parse dates manually
     const parseSqlDate = (dateStr: string | null): Date | null => {
       if (!dateStr) return null;
@@ -197,6 +276,8 @@ export class OrderRepository {
   static async updateStatus(id: number, status: OrderStatus, trackingNumber?: string | null): Promise<boolean> {
     const fields: string[] = ['status = @status', 'updated_at = GETDATE()'];
     const params: Record<string, any> = { id, status };
+    const trackingField = 'tracking_number = @trackingNumber';
+    const includeTrackingUpdate = trackingNumber !== undefined;
 
     // If confirming, set confirmed_at
     if (status === OrderStatus.CONFIRMED) {
@@ -204,16 +285,28 @@ export class OrderRepository {
     }
 
     // If tracking number is provided, update it (especially for SHIPPED status)
-    if (trackingNumber !== undefined) {
-      fields.push('tracking_number = @trackingNumber');
+    if (includeTrackingUpdate) {
+      fields.push(trackingField);
       params.trackingNumber = trackingNumber || null;
     }
 
-    const rowsAffected = await executeNonQuery(
-      `UPDATE orders SET ${fields.join(', ')} WHERE id = @id`,
-      params
-    );
-    return rowsAffected > 0;
+    try {
+      const rowsAffected = await executeNonQuery(
+        `UPDATE orders SET ${fields.join(', ')} WHERE id = @id`,
+        params
+      );
+      return rowsAffected > 0;
+    } catch (error: any) {
+      if (includeTrackingUpdate && error?.number === 207) {
+        await ensureTrackingNumberColumn();
+        const rowsAffected = await executeNonQuery(
+          `UPDATE orders SET ${fields.join(', ')} WHERE id = @id`,
+          params
+        );
+        return rowsAffected > 0;
+      }
+      throw error;
+    }
   }
 
   // Helper method to parse shipping address

@@ -90,7 +90,7 @@ export default function CategorySelector({
                     id={`category-${category.id}`}
                     checked={selectedCategoryIds.includes(category.id)}
                     onChange={() => handleCategoryToggle(category.id)}
-                    className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded"
                   />
                   <label
                     htmlFor={`category-${category.id}`}
@@ -123,7 +123,7 @@ export default function CategorySelector({
             name="primaryCategoryId"
             value={primaryCategoryId || ''}
             onChange={(e) => handlePrimaryCategoryChange(e.target.value ? parseInt(e.target.value, 10) : null)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue text-gray-900"
           >
             <option value="">Ana kategori seçin (opsiyonel)</option>
             {flatCategories

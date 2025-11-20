@@ -69,7 +69,7 @@ function FilterSection({ title, isOpen: initialOpen = true, children, searchable
               placeholder={searchPlaceholder || `${title} Ara`}
               value={searchQuery}
               onChange={handleSearch}
-              className="w-full px-3 py-2 mb-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
+              className="w-full px-3 py-2 mb-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue text-gray-900"
             />
           )}
           {children}
@@ -192,7 +192,7 @@ export default function AdvancedProductFilters({
         <h3 className="font-semibold text-gray-900 text-base">Filtreler</h3>
         <button
           onClick={onReset}
-          className="text-sm text-pink-600 hover:text-pink-700 font-medium"
+          className="text-sm text-primary-blue hover:text-primary-blue-dark font-medium"
         >
           Temizle
         </button>
@@ -213,7 +213,7 @@ export default function AdvancedProductFilters({
                     type="checkbox"
                     checked={selectedFilters.categories.includes(category.slug)}
                     onChange={() => handleCategoryToggle(category.slug)}
-                    className="w-4 h-4 text-pink-600 focus:ring-pink-500 rounded"
+                    className="w-4 h-4 text-primary-blue focus:ring-primary-blue rounded"
                   />
                   <span className="text-sm text-gray-700">{category.name}</span>
                 </label>
@@ -240,7 +240,7 @@ export default function AdvancedProductFilters({
                     type="checkbox"
                     checked={selectedFilters.brands.includes(brandItem.brand)}
                     onChange={() => handleBrandToggle(brandItem.brand)}
-                    className="w-4 h-4 text-pink-600 focus:ring-pink-500 rounded"
+                    className="w-4 h-4 text-primary-blue focus:ring-primary-blue rounded"
                   />
                   <span className="text-sm text-gray-700">
                     {brandItem.brand}
@@ -265,7 +265,7 @@ export default function AdvancedProductFilters({
                 onChange={(e) =>
                   setLocalPriceRange({ ...localPriceRange, min: parseFloat(e.target.value) || 0 })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue text-gray-900"
                 min="0"
               />
               <span className="self-center text-gray-400">-</span>
@@ -276,12 +276,12 @@ export default function AdvancedProductFilters({
                 onChange={(e) =>
                   setLocalPriceRange({ ...localPriceRange, max: parseFloat(e.target.value) || 0 })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue text-gray-900"
                 min="0"
               />
               <button
                 type="submit"
-                className="px-3 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors"
+                className="px-3 py-2 bg-primary-blue text-white rounded-md hover:bg-primary-blue-dark transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -299,7 +299,7 @@ export default function AdvancedProductFilters({
                     name="priceRange"
                     checked={localPriceRange.min === range.min && localPriceRange.max === range.max}
                     onChange={() => handlePriceRangeSelect(range.min, range.max)}
-                    className="w-4 h-4 text-pink-600 focus:ring-pink-500"
+                    className="w-4 h-4 text-primary-blue focus:ring-primary-blue"
                   />
                   <span className="text-sm text-gray-700">{range.label}</span>
                 </label>
@@ -326,7 +326,7 @@ export default function AdvancedProductFilters({
                   <div
                     className={`w-10 h-10 rounded-full border-2 mb-1 ${
                       selectedFilters.attributes['renk']?.includes(value.slug)
-                        ? 'border-pink-600 ring-2 ring-pink-200'
+                        ? 'border-primary-blue ring-2 ring-pink-200'
                         : 'border-gray-300'
                     }`}
                     style={{
@@ -368,7 +368,7 @@ export default function AdvancedProductFilters({
                         type="checkbox"
                         checked={selectedFilters.attributes[attribute.slug]?.includes(value.slug) || false}
                         onChange={() => handleAttributeValueToggle(attribute.slug, value.slug)}
-                        className="w-4 h-4 text-pink-600 focus:ring-pink-500 rounded"
+                        className="w-4 h-4 text-primary-blue focus:ring-primary-blue rounded"
                       />
                       <span className="text-sm text-gray-700">
                         {value.value}

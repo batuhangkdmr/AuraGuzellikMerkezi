@@ -1,4 +1,4 @@
-npm inpm # E-Commerce Sistem Kurulumu
+ npm inpm # E-Commerce Sistem Kurulumu
 
 ## ✅ Tamamlanan Özellikler
 

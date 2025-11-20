@@ -1,5 +1,5 @@
 {
-  "name": "aura-guzellik-merkezi",
+  "name": "newholland-yedek-parca-bayi",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,9 +11,19 @@
     "check-tables": "tsx scripts/check-tables.ts",
     "export-db": "tsx scripts/export-database.ts",
     "import-db": "tsx scripts/import-database.ts",
-    "create-missing-tables": "tsx scripts/create-missing-tables.ts"
+    "create-missing-tables": "tsx scripts/create-missing-tables.ts",
+    "fix-order-history": "tsx scripts/fix-order-status-history.ts",
+    "create-reviews-table": "tsx scripts/create-product-reviews-table.ts",
+    "create-coupons-table": "tsx scripts/create-coupons-table.ts",
+    "create-returns-table": "tsx scripts/create-returns-table.ts",
+    "create-addresses-table": "tsx scripts/create-user-addresses-table.ts",
+    "fix-status-columns": "tsx scripts/fix-order-status-history-columns.ts",
+    "fix-status-simple": "tsx scripts/fix-order-status-history-simple.ts",
+    "create-notifications-table": "tsx scripts/create-notifications-table.ts",
+    "create-price-alerts-table": "tsx scripts/create-price-alerts-table.ts"
   },
   "dependencies": {
+    "@types/nodemailer": "^7.0.3",
     "bcryptjs": "^3.0.2",
     "browser-image-compression": "^2.0.2",
     "cloudinary": "^2.8.0",
@@ -21,6 +31,7 @@
     "mssql": "^11.0.1",
     "next": "^14.2.0",
     "next-cloudinary": "^6.16.0",
+    "nodemailer": "^7.0.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",

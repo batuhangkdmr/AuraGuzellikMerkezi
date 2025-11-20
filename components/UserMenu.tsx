@@ -42,9 +42,9 @@ export default function UserMenu({ userName, userRole }: UserMenuProps) {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-pink-600 transition focus:outline-none"
+        className="flex items-center gap-2 px-3 py-2 text-white hover:text-accent-yellow transition focus:outline-none rounded-lg hover:bg-primary-blue-dark"
       >
-        <span className="font-medium">{userName}</span>
+        <span className="font-semibold text-sm">{userName}</span>
         <svg
           className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
@@ -73,6 +73,14 @@ export default function UserMenu({ userName, userRole }: UserMenuProps) {
             onClick={() => setIsOpen(false)}
           >
             👤 Profilim
+          </Link>
+          
+          <Link
+            href="/profile/orders"
+            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+            onClick={() => setIsOpen(false)}
+          >
+            📦 Siparişlerim
           </Link>
           
           <Link

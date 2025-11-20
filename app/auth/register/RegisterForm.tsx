@@ -168,7 +168,7 @@ export default function RegisterForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-accent-yellow text-primary-blue-dark font-bold py-3 rounded-lg hover:bg-accent-yellow-light transition duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}
       </button>

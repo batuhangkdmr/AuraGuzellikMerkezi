@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { CartProvider } from "./context/CartContext";
+import { CompareProvider } from "./context/CompareContext";
+import ToastContainer from "@/components/ToastContainer";
 
 export const metadata: Metadata = {
-  title: "Aura Güzellik Merkezi",
-  description: "Güzelliğiniz için profesyonel hizmetler",
+  title: "New Holland Yedek Parça Bayi",
+  description: "New Holland yedek parça ve aksesuar satışı",
 };
 
 export default function RootLayout({
@@ -16,7 +18,10 @@ export default function RootLayout({
     <html lang="tr">
       <body>
         <CartProvider>
-          {children}
+          <CompareProvider>
+            {children}
+            <ToastContainer />
+          </CompareProvider>
         </CartProvider>
       </body>
     </html>

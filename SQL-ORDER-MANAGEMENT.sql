@@ -3,7 +3,7 @@
 -- Run this in SQL Server Management Studio (New Query)
 -- =============================================
 
-USE auraguzellikmerkezi2;
+USE sitenhaz_sitenhazirDb;
 GO
 
 -- =============================================
@@ -13,11 +13,11 @@ PRINT 'Step 1: Adding tracking_number column to orders table...';
 
 IF NOT EXISTS (
     SELECT * FROM sys.columns 
-    WHERE object_id = OBJECT_ID(N'dbo.orders') 
+    WHERE object_id = OBJECT_ID(N'sitenhaz_sitenhazir.orders') 
     AND name = 'tracking_number'
 )
 BEGIN
-    ALTER TABLE dbo.orders
+    ALTER TABLE sitenhaz_sitenhazir.orders
     ADD tracking_number NVARCHAR(100) NULL;
     
     PRINT 'Step 1: SUCCESS - tracking_number column added!';
@@ -34,9 +34,13 @@ GO
 PRINT '';
 PRINT 'Step 2: Creating order_status_history table...';
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'order_status_history')
+IF NOT EXISTS (
+    SELECT * FROM sys.tables 
+    WHERE name = 'order_status_history'
+      AND schema_id = SCHEMA_ID('sitenhaz_sitenhazir')
+)
 BEGIN
-    CREATE TABLE dbo.order_status_history (
+    CREATE TABLE sitenhaz_sitenhazir.order_status_history (
         id INT PRIMARY KEY IDENTITY(1,1),
         order_id INT NOT NULL,
         admin_user_id INT NOT NULL,
@@ -47,17 +51,17 @@ BEGIN
         
         -- Foreign keys
         CONSTRAINT FK_order_status_history_order 
-            FOREIGN KEY (order_id) REFERENCES dbo.orders(id) ON DELETE CASCADE,
+            FOREIGN KEY (order_id) REFERENCES sitenhaz_sitenhazir.orders(id) ON DELETE CASCADE,
         CONSTRAINT FK_order_status_history_admin_user 
-            FOREIGN KEY (admin_user_id) REFERENCES dbo.users(id)
+            FOREIGN KEY (admin_user_id) REFERENCES sitenhaz_sitenhazir.users(id)
     );
     
     PRINT 'Step 2: SUCCESS - order_status_history table created!';
     
     -- Create indexes for better query performance
-    CREATE INDEX IX_order_status_history_order_id ON dbo.order_status_history(order_id);
-    CREATE INDEX IX_order_status_history_admin_user_id ON dbo.order_status_history(admin_user_id);
-    CREATE INDEX IX_order_status_history_created_at ON dbo.order_status_history(created_at);
+    CREATE INDEX IX_order_status_history_order_id ON sitenhaz_sitenhazir.order_status_history(order_id);
+    CREATE INDEX IX_order_status_history_admin_user_id ON sitenhaz_sitenhazir.order_status_history(admin_user_id);
+    CREATE INDEX IX_order_status_history_created_at ON sitenhaz_sitenhazir.order_status_history(created_at);
     
     PRINT 'Step 2: Indexes created successfully!';
 END
@@ -75,17 +79,17 @@ PRINT 'Step 3: Creating index for tracking_number...';
 
 IF EXISTS (
     SELECT * FROM sys.columns 
-    WHERE object_id = OBJECT_ID(N'dbo.orders') 
+    WHERE object_id = OBJECT_ID(N'sitenhaz_sitenhazir.orders') 
     AND name = 'tracking_number'
 )
 BEGIN
     IF NOT EXISTS (
         SELECT * FROM sys.indexes 
-        WHERE object_id = OBJECT_ID(N'dbo.orders') 
+        WHERE object_id = OBJECT_ID(N'sitenhaz_sitenhazir.orders') 
         AND name = 'IX_orders_tracking_number'
     )
     BEGIN
-        CREATE INDEX IX_orders_tracking_number ON dbo.orders(tracking_number)
+        CREATE INDEX IX_orders_tracking_number ON sitenhaz_sitenhazir.orders(tracking_number)
         WHERE tracking_number IS NOT NULL; -- Filtered index for non-null values
         
         PRINT 'Step 3: SUCCESS - Index IX_orders_tracking_number created!';
@@ -113,7 +117,7 @@ PRINT '';
 -- Check tracking_number column
 IF EXISTS (
     SELECT * FROM sys.columns 
-    WHERE object_id = OBJECT_ID(N'dbo.orders') 
+    WHERE object_id = OBJECT_ID(N'sitenhaz_sitenhazir.orders') 
     AND name = 'tracking_number'
 )
 BEGIN
@@ -125,7 +129,11 @@ BEGIN
 END
 
 -- Check order_status_history table
-IF EXISTS (SELECT * FROM sys.tables WHERE name = 'order_status_history')
+IF EXISTS (
+    SELECT * FROM sys.tables 
+    WHERE name = 'order_status_history'
+      AND schema_id = SCHEMA_ID('sitenhaz_sitenhazir')
+)
 BEGIN
     PRINT '✅ order_status_history table: EXISTS';
     
@@ -133,7 +141,7 @@ BEGIN
     DECLARE @ColumnCount INT;
     SELECT @ColumnCount = COUNT(*) 
     FROM sys.columns 
-    WHERE object_id = OBJECT_ID(N'dbo.order_status_history');
+    WHERE object_id = OBJECT_ID(N'sitenhaz_sitenhazir.order_status_history');
     PRINT '   Columns: ' + CAST(@ColumnCount AS VARCHAR(10));
 END
 ELSE
@@ -144,7 +152,7 @@ END
 -- Check indexes
 IF EXISTS (
     SELECT * FROM sys.indexes 
-    WHERE object_id = OBJECT_ID(N'dbo.orders') 
+    WHERE object_id = OBJECT_ID(N'sitenhaz_sitenhazir.orders') 
     AND name = 'IX_orders_tracking_number'
 )
 BEGIN
@@ -157,7 +165,7 @@ END
 
 IF EXISTS (
     SELECT * FROM sys.indexes 
-    WHERE object_id = OBJECT_ID(N'dbo.order_status_history') 
+    WHERE object_id = OBJECT_ID(N'sitenhaz_sitenhazir.order_status_history') 
     AND name = 'IX_order_status_history_order_id'
 )
 BEGIN

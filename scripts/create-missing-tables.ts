@@ -195,21 +195,102 @@ async function createMissingTables() {
     console.log('   ✅ favorites table');
     
     // 8. Order status history
-    console.log('📋 Creating order_status_history table...');
+    console.log('📋 Creating/updating order_status_history table...');
+    
+    // Create table if it doesn't exist
     await executeNonQuery(`
       IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'order_status_history')
       BEGIN
         CREATE TABLE order_status_history (
           id INT PRIMARY KEY IDENTITY(1,1),
           order_id INT NOT NULL,
-          status VARCHAR(50) NOT NULL,
-          notes NVARCHAR(500) NULL,
+          admin_user_id INT NULL,
+          old_status NVARCHAR(50) NULL,
+          new_status NVARCHAR(50) NOT NULL,
+          note NVARCHAR(500) NULL,
           created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
-          CONSTRAINT FK_order_status_history_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+          CONSTRAINT FK_order_status_history_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+          CONSTRAINT FK_order_status_history_admin_user FOREIGN KEY (admin_user_id) REFERENCES users(id)
         );
         CREATE INDEX IX_order_status_history_order_id ON order_status_history(order_id);
+        CREATE INDEX IX_order_status_history_admin_user_id ON order_status_history(admin_user_id);
         CREATE INDEX IX_order_status_history_created_at ON order_status_history(created_at);
         PRINT '✅ order_status_history table created';
+      END
+    `);
+    
+    // Add missing columns if table exists - split into separate queries
+    await executeNonQuery(`
+      IF EXISTS (SELECT * FROM sys.tables WHERE name = 'order_status_history')
+      BEGIN
+        -- Add admin_user_id if missing
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_status_history') AND name = 'admin_user_id')
+        BEGIN
+          ALTER TABLE order_status_history ADD admin_user_id INT NULL;
+          PRINT '✅ admin_user_id column added';
+        END
+      END
+    `);
+    
+    // Add foreign key separately
+    await executeNonQuery(`
+      IF EXISTS (SELECT * FROM sys.tables WHERE name = 'order_status_history')
+      AND EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_status_history') AND name = 'admin_user_id')
+      AND NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_order_status_history_admin_user')
+      BEGIN
+        ALTER TABLE order_status_history ADD CONSTRAINT FK_order_status_history_admin_user FOREIGN KEY (admin_user_id) REFERENCES users(id);
+        PRINT '✅ Foreign key for admin_user_id added';
+      END
+    `);
+    
+    await executeNonQuery(`
+      IF EXISTS (SELECT * FROM sys.tables WHERE name = 'order_status_history')
+      BEGIN
+        -- Add old_status if missing
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_status_history') AND name = 'old_status')
+        BEGIN
+          ALTER TABLE order_status_history ADD old_status NVARCHAR(50) NULL;
+          PRINT '✅ old_status column added';
+        END
+        
+        -- Add new_status if missing
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_status_history') AND name = 'new_status')
+        BEGIN
+          ALTER TABLE order_status_history ADD new_status NVARCHAR(50) NULL;
+          PRINT '✅ new_status column added';
+        END
+      END
+    `);
+    
+    // Migrate data from status to new_status
+    await executeNonQuery(`
+      IF EXISTS (SELECT * FROM sys.tables WHERE name = 'order_status_history')
+      AND EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_status_history') AND name = 'status')
+      AND EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_status_history') AND name = 'new_status')
+      BEGIN
+        UPDATE order_status_history SET new_status = status WHERE new_status IS NULL AND status IS NOT NULL;
+        PRINT '✅ Migrated status data to new_status';
+      END
+    `);
+    
+    await executeNonQuery(`
+      IF EXISTS (SELECT * FROM sys.tables WHERE name = 'order_status_history')
+      BEGIN
+        -- Rename notes to note if needed
+        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_status_history') AND name = 'notes')
+        AND NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_status_history') AND name = 'note')
+        BEGIN
+          EXEC sp_rename 'order_status_history.notes', 'note', 'COLUMN';
+          PRINT '✅ notes column renamed to note';
+        END
+        
+        -- Add note if missing
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_status_history') AND name = 'note')
+        AND NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_status_history') AND name = 'notes')
+        BEGIN
+          ALTER TABLE order_status_history ADD note NVARCHAR(500) NULL;
+          PRINT '✅ note column added';
+        END
       END
     `);
     console.log('   ✅ order_status_history table');

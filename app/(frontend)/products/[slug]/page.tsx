@@ -1,8 +1,9 @@
 import { getProductBySlug } from '@/app/server-actions/productActions';
+import { getProductRating } from '@/app/server-actions/reviewActions';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import AddToCartButton from './AddToCartButton';
-import FavoriteButton from '@/components/FavoriteButton';
+import ProductImageGallery from './ProductImageGallery';
+import ProductDetailInfo from './ProductDetailInfo';
+import ProductReviews from './ProductReviews';
 
 export default async function ProductDetailPage({
   params,
@@ -17,84 +18,31 @@ export default async function ProductDetailPage({
 
   const product = result.data;
   const images = product.images || [];
-  const mainImage = images[0] || '/placeholder-image.svg';
+
+  // Get product rating
+  const ratingResult = await getProductRating(product.id);
+  const rating = ratingResult.success && ratingResult.data ? ratingResult.data : { average: 0, count: 0 };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8">
-            {/* Product Image */}
-            <div className="relative h-96 w-full">
-              <Image
-                src={mainImage}
-                alt={product.name}
-                fill
-                className="object-cover rounded-lg"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority
-              />
-              {/* Favorite Button */}
-              <div className="absolute top-4 right-4">
-                <FavoriteButton productId={product.id} size="lg" />
-              </div>
+    <div className="min-h-screen bg-gray-50 py-8 lg:py-12">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 p-6 lg:p-10">
+            {/* Left Side - Product Images */}
+            <div className="lg:sticky lg:top-8 lg:self-start">
+              <ProductImageGallery images={images} productName={product.name} />
             </div>
 
-            {/* Product Info */}
-            <div className="flex flex-col">
-              <div className="flex items-start justify-between mb-4">
-                <h1 className="text-3xl font-bold text-gray-900 flex-1">{product.name}</h1>
-                <div className="ml-4">
-                  <FavoriteButton productId={product.id} size="lg" />
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-pink-600">
-                  {product.price.toFixed(2)} ₺
-                </span>
-              </div>
-
-              <div className="mb-6">
-                <p className="text-gray-700 leading-relaxed">{product.description}</p>
-              </div>
-
-              <div className="mb-6">
-                {product.stock > 0 ? (
-                  <span className="inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full">
-                    Stokta var ({product.stock} adet)
-                  </span>
-                ) : (
-                  <span className="inline-block px-4 py-2 bg-red-100 text-red-800 rounded-full">
-                    Stokta yok
-                  </span>
-                )}
-              </div>
-
-              {/* Add to Cart */}
-              <AddToCartButton productId={product.id} stock={product.stock} />
+            {/* Right Side - Product Information */}
+            <div>
+              <ProductDetailInfo product={product} rating={rating} />
             </div>
           </div>
+        </div>
 
-          {/* Additional Images */}
-          {images.length > 1 && (
-            <div className="px-8 pb-8">
-              <h2 className="text-xl font-semibold mb-4">Diğer Görseller</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {images.slice(1).map((image, index) => (
-                  <div key={index} className="relative h-32 w-full">
-                    <Image
-                      src={image}
-                      alt={`${product.name} - Görsel ${index + 2}`}
-                      fill
-                      className="object-cover rounded-lg"
-                      sizes="(max-width: 768px) 50vw, 25vw"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* Product Reviews Section */}
+        <div className="mt-8">
+          <ProductReviews productId={product.id} productSlug={product.slug} />
         </div>
       </div>
     </div>
