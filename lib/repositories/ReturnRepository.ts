@@ -213,6 +213,10 @@ export class ReturnRepository {
       }
     );
 
+    if (!returnResult) {
+      throw new Error('Return oluşturulamadı');
+    }
+
     const returnId = returnResult.id;
 
     // Create return items only for product returns
