@@ -20,7 +20,7 @@ export default function CancelOrderButton({ orderId, existingRequest }: CancelOr
   const [reason, setReason] = useState('');
   const [success, setSuccess] = useState<string | null>(null);
 
-  const isPendingRequest = existingRequest && existingRequest.status === 'PENDING';
+  const isPendingRequest = !!(existingRequest && existingRequest.status === 'PENDING');
 
   const handleSubmit = async () => {
     setLoading(true);
