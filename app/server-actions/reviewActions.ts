@@ -180,14 +180,13 @@ export async function getProductRating(productId: number): Promise<ActionRespons
   count: number;
 }>> {
   try {
-    const rating = await ProductReviewRepository.getAverageRating(productId);
-    const count = await ProductReviewRepository.countByProductId(productId);
+    const ratingData = await ProductReviewRepository.getAverageRating(productId);
 
     return {
       success: true,
       data: {
-        average: rating || 0,
-        count,
+        average: ratingData.average || 0,
+        count: ratingData.count || 0,
       },
     };
   } catch (error: any) {
