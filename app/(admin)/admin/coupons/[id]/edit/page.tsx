@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/requireUser';
 import { getAllCoupons } from '@/app/server-actions/couponActions';
 import Link from 'next/link';
-import CouponForm from '../CouponForm';
+import CouponForm from '../../CouponForm';
 
 export default async function EditCouponPage({
   params,
