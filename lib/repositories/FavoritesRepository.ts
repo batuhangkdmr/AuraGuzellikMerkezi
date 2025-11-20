@@ -52,6 +52,10 @@ export class FavoritesRepository {
       throw error;
     }
 
+    if (!result) {
+      throw new Error('Failed to add favorite');
+    }
+
     const favorite = await executeQueryOne<Favorite>(
       `SELECT id, user_id as userId, product_id as productId, 
               CONVERT(VARCHAR(23), created_at, 126) as createdAt

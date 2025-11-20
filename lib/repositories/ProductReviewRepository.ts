@@ -138,6 +138,10 @@ export class ProductReviewRepository {
       }
     );
 
+    if (!result) {
+      throw new Error('Review oluşturulamadı');
+    }
+
     const review = await this.findById(result.id);
     if (!review) {
       throw new Error('Review oluşturulamadı');
