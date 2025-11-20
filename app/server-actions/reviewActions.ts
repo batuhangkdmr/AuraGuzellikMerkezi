@@ -14,8 +14,79 @@ export interface ActionResponse<T = void> {
 const createReviewSchema = z.object({
   productId: z.number().int().positive('Ürün ID gereklidir'),
   rating: z.number().int().min(1, 'Puan en az 1 olmalıdır').max(5, 'Puan en fazla 5 olabilir'),
-  comment: z.string().min(10, 'Yorum en az 10 karakter olmalıdır').max(1000, 'Yorum en fazla 1000 karakter olabilir'),
+  comment: z.string().max(1000, 'Yorum en fazla 1000 karakter olabilir').optional().nullable(),
 });
+
+/**
+ * Create product review (alias for submitProductReview)
+ */
+export async function createReview(formData: FormData): Promise<ActionResponse<{ id: number }>> {
+  return submitProductReview(formData);
+}
+
+/**
+ * Update product review
+ */
+export async function updateReview(reviewId: number, formData: FormData): Promise<ActionResponse<{ id: number }>> {
+  try {
+    const user = await requireUser();
+
+    const rawData = {
+      rating: parseInt(formData.get('rating') as string, 10),
+      comment: formData.get('comment') as string,
+    };
+
+    const validated = z.object({
+      rating: z.number().int().min(1, 'Puan en az 1 olmalıdır').max(5, 'Puan en fazla 5 olabilir'),
+      comment: z.string().max(1000, 'Yorum en fazla 1000 karakter olabilir').optional().nullable(),
+    }).parse(rawData);
+
+    // Check if review exists and belongs to user
+    const existingReview = await ProductReviewRepository.findById(reviewId);
+    if (!existingReview) {
+      return {
+        success: false,
+        error: 'Yorum bulunamadı',
+      };
+    }
+
+    if (existingReview.userId !== user.id) {
+      return {
+        success: false,
+        error: 'Bu yorumu düzenleme yetkiniz yok',
+      };
+    }
+
+    const updated = await ProductReviewRepository.update(reviewId, {
+      rating: validated.rating,
+      comment: validated.comment,
+    });
+
+    if (!updated) {
+      return {
+        success: false,
+        error: 'Yorum güncellenirken bir hata oluştu',
+      };
+    }
+
+    return {
+      success: true,
+      data: { id: reviewId },
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: error.errors[0].message,
+      };
+    }
+    console.error('Update review error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Yorum güncellenirken bir hata oluştu',
+    };
+  }
+}
 
 /**
  * Submit product review
@@ -70,38 +141,27 @@ export async function submitProductReview(formData: FormData): Promise<ActionRes
 /**
  * Get reviews for a product
  */
-export async function getProductReviews(productId: number, page: number = 1, limit: number = 10): Promise<ActionResponse<{
-  reviews: Array<{
-    id: number;
-    userId: number;
-    userName: string;
-    rating: number;
-    comment: string;
-    createdAt: Date;
-  }>;
-  total: number;
-  page: number;
-  limit: number;
-}>> {
+export async function getProductReviews(productId: number, page: number = 1, limit: number = 10): Promise<ActionResponse<Array<{
+  id: number;
+  userId: number;
+  userName: string;
+  rating: number;
+  comment: string | null;
+  createdAt: Date;
+}>>> {
   try {
-    const reviews = await ProductReviewRepository.findByProductId(productId, page, limit);
-    const total = await ProductReviewRepository.countByProductId(productId);
+    const reviews = await ProductReviewRepository.findByProductId(productId, false);
 
     return {
       success: true,
-      data: {
-        reviews: reviews.map(r => ({
-          id: r.id,
-          userId: r.userId,
-          userName: r.userName || 'Anonim',
-          rating: r.rating,
-          comment: r.comment,
-          createdAt: r.createdAt,
-        })),
-        total,
-        page,
-        limit,
-      },
+      data: reviews.map(r => ({
+        id: r.id,
+        userId: r.userId,
+        userName: r.userName || 'Anonim',
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt,
+      })),
     };
   } catch (error: any) {
     console.error('Get product reviews error:', error);
@@ -219,17 +279,34 @@ export async function updateReviewApproval(reviewId: number, isApproved: boolean
 }
 
 /**
- * Delete review (admin)
+ * Delete review (admin or owner)
  */
 export async function deleteReview(reviewId: number): Promise<ActionResponse> {
   try {
-    await requireUser('ADMIN');
+    const user = await requireUser();
+
+    // Check if review exists
+    const review = await ProductReviewRepository.findById(reviewId);
+    if (!review) {
+      return {
+        success: false,
+        error: 'Yorum bulunamadı',
+      };
+    }
+
+    // Check if user is admin or owner
+    if (user.role !== 'ADMIN' && review.userId !== user.id) {
+      return {
+        success: false,
+        error: 'Bu yorumu silme yetkiniz yok',
+      };
+    }
 
     const success = await ProductReviewRepository.delete(reviewId);
     if (!success) {
       return {
         success: false,
-        error: 'Yorum bulunamadı',
+        error: 'Yorum silinirken bir hata oluştu',
       };
     }
 

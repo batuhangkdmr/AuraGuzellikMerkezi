@@ -12,8 +12,8 @@ export default async function AdminCouponsPage() {
 
   // Calculate statistics
   const totalCoupons = coupons.length;
-  const activeCoupons = coupons.filter(c => c.isActive && new Date(c.expiresAt) > new Date()).length;
-  const expiredCoupons = coupons.filter(c => new Date(c.expiresAt) <= new Date()).length;
+  const activeCoupons = coupons.filter(c => c.isActive && (!c.validUntil || new Date(c.validUntil) > new Date())).length;
+  const expiredCoupons = coupons.filter(c => c.validUntil && new Date(c.validUntil) <= new Date()).length;
   const totalUsage = coupons.reduce((sum, c) => sum + c.usedCount, 0);
 
   return (
