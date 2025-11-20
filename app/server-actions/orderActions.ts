@@ -422,6 +422,23 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
 }
 
 /**
+ * Helper function to get orders with items for a user
+ */
+async function getOrdersForUser(userId: number) {
+  const orders = await OrderRepository.findByUserId(userId);
+  
+  // Fetch items for each order
+  const ordersWithItems = await Promise.all(
+    orders.map(async (order) => {
+      const orderWithItems = await OrderRepository.findById(order.id);
+      return orderWithItems || { ...order, items: [] };
+    })
+  );
+  
+  return ordersWithItems;
+}
+
+/**
  * Get user orders
  */
 export async function getUserOrders(isForAdmin: boolean = false, userIdOverride?: number) {
