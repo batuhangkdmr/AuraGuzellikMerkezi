@@ -101,7 +101,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<{ i
     const user = await UserRepository.create({
       name: validated.name,
       email: validated.email,
-      password: hashedPassword,
+      passwordHash: hashedPassword,
       role: validated.role as UserRole,
     });
 
