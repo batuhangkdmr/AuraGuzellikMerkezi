@@ -15,7 +15,7 @@ export default function IletisimPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-blue focus:border-transparent"
                 />
               </div>
               
@@ -25,7 +25,7 @@ export default function IletisimPage() {
                 </label>
                 <input
                   type="email"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-blue focus:border-transparent"
                 />
               </div>
               
@@ -35,7 +35,7 @@ export default function IletisimPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-blue focus:border-transparent"
                 />
               </div>
               
@@ -45,13 +45,13 @@ export default function IletisimPage() {
                 </label>
                 <textarea
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-600 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-blue focus:border-transparent"
                 ></textarea>
               </div>
               
               <button
                 type="submit"
-                className="w-full bg-pink-600 text-white py-3 rounded-lg font-semibold hover:bg-pink-700 transition"
+                className="w-full bg-accent-yellow text-primary-blue-dark py-3 rounded-lg font-bold hover:bg-accent-yellow-light transition shadow-lg"
               >
                 Gönder
               </button>
@@ -67,8 +67,8 @@ export default function IletisimPage() {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-xl font-semibold mb-4">📍 Adres</h3>
               <p className="text-gray-600">
-                Örnek Mahallesi, Güzellik Sokak No:123<br />
-                Kadıköy / İstanbul
+                Örnek Mahallesi, Sanayi Caddesi No:123<br />
+                İstanbul
               </p>
             </div>
             
@@ -83,8 +83,8 @@ export default function IletisimPage() {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-xl font-semibold mb-4">📧 E-posta</h3>
               <p className="text-gray-600">
-                info@auraguzellik.com<br />
-                randevu@auraguzellik.com
+                info@newhollandbayi.com<br />
+                randevu@newhollandbayi.com
               </p>
             </div>
             

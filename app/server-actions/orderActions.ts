@@ -6,9 +6,14 @@ import { OrderRepository, OrderStatus, ShippingAddress } from '@/lib/repositorie
 import { OrderStatusHistoryRepository } from '@/lib/repositories/OrderStatusHistoryRepository';
 import { CartRepository } from '@/lib/repositories/CartRepository';
 import { ProductRepository } from '@/lib/repositories/ProductRepository';
+import { UserRepository } from '@/lib/repositories/UserRepository';
+import { ReturnRepository } from '@/lib/repositories/ReturnRepository';
 import { requireUser } from '@/lib/requireUser';
-import { executeTransaction } from '@/lib/db';
+import { executeTransaction, executeQuery } from '@/lib/db';
 import { sql } from '@/lib/db';
+import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from '@/lib/email';
+import { createNotification } from './notificationActions';
+import { CouponRepository } from '@/lib/repositories/CouponRepository';
 
 // Validation schema
 const shippingAddressSchema = z.object({
@@ -205,8 +210,38 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
         }
       }
 
+      // Calculate subtotal
+      const subtotal = orderItems.reduce((sum, item) => sum + item.priceSnapshot * item.quantity, 0);
+
+      // Apply coupon if provided
+      let discountAmount = 0;
+      let couponId: number | null = null;
+      const couponIdParam = formData.get('couponId');
+      const discountAmountParam = formData.get('discountAmount');
+      
+      if (couponIdParam && discountAmountParam) {
+        couponId = parseInt(couponIdParam as string, 10);
+        discountAmount = parseFloat(discountAmountParam as string);
+        
+        // Validate coupon again before applying
+        const coupon = await CouponRepository.findById(couponId);
+        if (coupon) {
+          const validation = await CouponRepository.validateCoupon(coupon.code, user.id, subtotal);
+          if (validation.valid && validation.discountAmount) {
+            discountAmount = validation.discountAmount;
+          } else {
+            // Coupon is no longer valid, don't apply it
+            discountAmount = 0;
+            couponId = null;
+          }
+        } else {
+          discountAmount = 0;
+          couponId = null;
+        }
+      }
+
       // Calculate total
-      const total = orderItems.reduce((sum, item) => sum + item.priceSnapshot * item.quantity, 0);
+      const total = Math.max(0, subtotal - discountAmount);
 
       // Create order directly in transaction (no nested transaction)
       const orderRequest = new sql.Request(transaction);
@@ -238,6 +273,28 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
         `);
       }
 
+      // Apply coupon if used (within transaction)
+      if (couponId && discountAmount > 0) {
+        // Increment used count
+        const couponUpdateRequest = new sql.Request(transaction);
+        couponUpdateRequest.input('couponId', sql.Int, couponId);
+        await couponUpdateRequest.query(`
+          UPDATE coupons 
+          SET used_count = used_count + 1, updated_at = GETDATE()
+          WHERE id = @couponId
+        `);
+
+        // Create usage record
+        const couponUsageRequest = new sql.Request(transaction);
+        couponUsageRequest.input('couponId', sql.Int, couponId);
+        couponUsageRequest.input('userId', sql.Int, user.id);
+        couponUsageRequest.input('orderId', sql.Int, orderId);
+        await couponUsageRequest.query(`
+          INSERT INTO coupon_usage (coupon_id, user_id, order_id, used_at)
+          VALUES (@couponId, @userId, @orderId, GETDATE())
+        `);
+      }
+
       // Clear cart
       const clearCartRequest = new sql.Request(transaction);
       clearCartRequest.input('userId', sql.Int, user.id);
@@ -246,17 +303,45 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
       `);
 
       // Create initial status history record (PENDING status when order is created)
+      // Check if old 'status' column exists, if so include it for compatibility
       const historyRequest = new sql.Request(transaction);
       historyRequest.input('orderId', sql.Int, orderId);
       historyRequest.input('adminUserId', sql.Int, user.id); // User who created the order
       historyRequest.input('oldStatus', sql.VarChar(50), null);
       historyRequest.input('newStatus', sql.VarChar(50), OrderStatus.PENDING);
+      historyRequest.input('status', sql.VarChar(50), OrderStatus.PENDING); // For backward compatibility
       historyRequest.input('note', sql.NVarChar(500), 'Sipariş oluşturuldu');
 
-      await historyRequest.query(`
-        INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, note, created_at)
-        VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @note, GETDATE())
-      `);
+      // Try with both new_status and status columns (for backward compatibility)
+      // If status column exists, we need to provide a value for it
+      try {
+        await historyRequest.query(`
+          INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, status, note, created_at)
+          VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @status, @note, GETDATE())
+        `);
+      } catch (error: any) {
+        // If status column doesn't exist, try without it
+        if (error.message?.includes('status') || error.message?.includes('Invalid column')) {
+          try {
+            await historyRequest.query(`
+              INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, note, created_at)
+              VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @note, GETDATE())
+            `);
+          } catch (error2: any) {
+            // If new_status doesn't exist either, try with old status column only
+            if (error2.message?.includes('new_status') || error2.message?.includes('Invalid column')) {
+              await historyRequest.query(`
+                INSERT INTO order_status_history (order_id, admin_user_id, old_status, status, note, created_at)
+                VALUES (@orderId, @adminUserId, @oldStatus, @status, @note, GETDATE())
+              `);
+            } else {
+              throw error2;
+            }
+          }
+        } else {
+          throw error;
+        }
+      }
 
       // Return order data (don't fetch from DB to avoid another query)
       return {
@@ -280,6 +365,43 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
       };
     });
 
+    // Send order confirmation email
+    try {
+      const user = await UserRepository.findById(order.userId);
+      if (user) {
+        const orderItemsForEmail = order.items.map(item => ({
+          name: item.nameSnapshot,
+          quantity: item.quantity,
+          price: item.priceSnapshot,
+        }));
+        
+        await sendOrderConfirmationEmail(
+          user.email,
+          user.name,
+          order.id,
+          order.total,
+          orderItemsForEmail
+        );
+      }
+    } catch (emailError) {
+      // Don't fail the order if email fails
+      console.error('Failed to send order confirmation email:', emailError);
+    }
+
+    // Create notification for user
+    try {
+      await createNotification({
+        userId: order.userId,
+        type: 'ORDER',
+        title: 'Siparişiniz Alındı',
+        message: `Siparişiniz (#${order.id}) başarıyla oluşturuldu. Toplam tutar: ${order.total.toFixed(2)} ₺`,
+        dataJson: { orderId: order.id },
+      });
+    } catch (notificationError) {
+      // Don't fail the order if notification fails
+      console.error('Failed to create notification:', notificationError);
+    }
+
     return {
       success: true,
       data: { orderId: order.id },
@@ -302,17 +424,23 @@ export async function createOrder(formData: FormData): Promise<ActionResponse<{ 
 /**
  * Get user orders
  */
-export async function getUserOrders() {
+export async function getUserOrders(isForAdmin: boolean = false, userIdOverride?: number) {
   try {
-    const user = await requireUser();
-    const orders = await OrderRepository.findByUserId(user.id);
+    const currentUser = await requireUser();
+    const targetUserId = userIdOverride ?? currentUser.id;
+
+    if (!isForAdmin && targetUserId !== currentUser.id) {
+      return {
+        success: false,
+        error: 'Siparişlere erişim yetkiniz yok',
+      };
+    }
+
+    const ordersWithItems = await getOrdersForUser(targetUserId);
     
     return {
       success: true,
-      data: orders.map(order => ({
-        ...order,
-        shippingAddress: OrderRepository.parseShippingAddress(order.shippingAddressJson),
-      })),
+      data: ordersWithItems,
     };
   } catch (error) {
     console.error('Get user orders error:', error);
@@ -370,12 +498,21 @@ export async function getOrderById(orderId: number) {
       })
     );
 
+    const cancellationRequest = await ReturnRepository.findLatestCancellationRequest(order.id);
+
     return {
       success: true,
       data: {
         ...order,
         items: itemsWithImages,
         shippingAddress: OrderRepository.parseShippingAddress(order.shippingAddressJson),
+        cancellationRequest: cancellationRequest
+          ? {
+              id: cancellationRequest.id,
+              status: cancellationRequest.status,
+              createdAt: cancellationRequest.createdAt?.toISOString() ?? '',
+            }
+          : null,
       },
     };
   } catch (error) {
@@ -429,6 +566,60 @@ export async function updateOrderStatus(
       note: note || null,
     });
 
+    // Send order status update email to user
+    try {
+      const user = await UserRepository.findById(order.userId);
+      if (user) {
+        await sendOrderStatusUpdateEmail(
+          user.email,
+          user.name,
+          orderId,
+          oldStatus,
+          status,
+          trackingNumber || null
+        );
+      }
+    } catch (emailError) {
+      // Don't fail the status update if email fails
+      console.error('Failed to send order status update email:', emailError);
+    }
+
+    // Create notification for user
+    try {
+      const statusMessages: Record<string, { title: string; message: string }> = {
+        CONFIRMED: {
+          title: 'Siparişiniz Onaylandı',
+          message: `Siparişiniz (#${orderId}) onaylandı ve hazırlanıyor.`,
+        },
+        SHIPPED: {
+          title: 'Siparişiniz Kargoya Verildi',
+          message: `Siparişiniz (#${orderId}) kargoya verildi.${trackingNumber ? ` Takip numarası: ${trackingNumber}` : ''}`,
+        },
+        DELIVERED: {
+          title: 'Siparişiniz Teslim Edildi',
+          message: `Siparişiniz (#${orderId}) başarıyla teslim edildi.`,
+        },
+        CANCELLED: {
+          title: 'Siparişiniz İptal Edildi',
+          message: `Siparişiniz (#${orderId}) iptal edildi.`,
+        },
+      };
+
+      const statusInfo = statusMessages[status];
+      if (statusInfo) {
+        await createNotification({
+          userId: order.userId,
+          type: 'ORDER',
+          title: statusInfo.title,
+          message: statusInfo.message,
+          dataJson: { orderId, trackingNumber: trackingNumber || null },
+        });
+      }
+    } catch (notificationError) {
+      // Don't fail the status update if notification fails
+      console.error('Failed to create notification:', notificationError);
+    }
+
     return {
       success: true,
     };
@@ -445,7 +636,12 @@ export async function updateOrderStatus(
  * Cancel order and restore stock (admin only, or user for their own orders)
  * Only PENDING and CONFIRMED orders can be cancelled
  */
-export async function cancelOrder(orderId: number): Promise<ActionResponse> {
+interface CancelOrderOptions {
+  initiatedBy?: 'ADMIN' | 'USER';
+  skipReturnLog?: boolean;
+}
+
+export async function cancelOrder(orderId: number, options?: CancelOrderOptions): Promise<ActionResponse> {
   try {
     const user = await requireUser();
     const order = await OrderRepository.findById(orderId);
@@ -472,6 +668,9 @@ export async function cancelOrder(orderId: number): Promise<ActionResponse> {
         error: 'Bu sipariş iptal edilemez. Sadece beklemede veya onaylanmış siparişler iptal edilebilir.',
       };
     }
+
+    const initiator =
+      options?.initiatedBy ?? (user.role === 'ADMIN' ? 'ADMIN' : 'USER');
 
     // Cancel order and restore stock in transaction
     await executeTransaction(async (transaction) => {
@@ -527,13 +726,59 @@ export async function cancelOrder(orderId: number): Promise<ActionResponse> {
       historyRequest.input('adminUserId', sql.Int, adminUserId);
       historyRequest.input('oldStatus', sql.VarChar(50), order.status);
       historyRequest.input('newStatus', sql.VarChar(50), OrderStatus.CANCELLED);
+      historyRequest.input('status', sql.VarChar(50), OrderStatus.CANCELLED); // For backward compatibility
       historyRequest.input('note', sql.NVarChar(500), 'Sipariş iptal edildi');
 
-      await historyRequest.query(`
-        INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, note, created_at)
-        VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @note, GETDATE())
-      `);
+      // Try with both new_status and status columns (for backward compatibility)
+      // If status column exists, we need to provide a value for it
+      try {
+        await historyRequest.query(`
+          INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, status, note, created_at)
+          VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @status, @note, GETDATE())
+        `);
+      } catch (error: any) {
+        // If status column doesn't exist, try without it
+        if (error.message?.includes('status') || error.message?.includes('Invalid column')) {
+          try {
+            await historyRequest.query(`
+              INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, note, created_at)
+              VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @note, GETDATE())
+            `);
+          } catch (error2: any) {
+            // If new_status doesn't exist either, try with old status column only
+            if (error2.message?.includes('new_status') || error2.message?.includes('Invalid column')) {
+              await historyRequest.query(`
+                INSERT INTO order_status_history (order_id, admin_user_id, old_status, status, note, created_at)
+                VALUES (@orderId, @adminUserId, @oldStatus, @status, @note, GETDATE())
+              `);
+            } else {
+              throw error2;
+            }
+          }
+        } else {
+          throw error;
+        }
+      }
     });
+
+    // Log cancellation in returns list
+    try {
+      await ReturnRepository.createCancellationRecord(
+        orderId,
+        order.userId,
+        user.role === 'ADMIN' ? 'ADMIN' : 'USER'
+      );
+    } catch (logError) {
+      console.error('Failed to create cancellation return record:', logError);
+    }
+
+    if (!options?.skipReturnLog) {
+      try {
+        await ReturnRepository.createCancellationRecord(orderId, order.userId, initiator);
+      } catch (logError) {
+        console.error('Failed to create cancellation return record:', logError);
+      }
+    }
 
     return {
       success: true,

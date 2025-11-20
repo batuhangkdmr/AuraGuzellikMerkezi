@@ -56,6 +56,7 @@ export async function getCartItems() {
         name: item.productName || '',
         price: item.productPrice || 0,
         images: item.productImages ? ProductRepository.parseImages(item.productImages) : [],
+        stock: item.productStock ?? 0,
       },
     }));
 
@@ -102,7 +103,27 @@ export async function addToCart(productId: number, quantity: number = 1): Promis
     }
 
     const user = await getOptionalUser();
-    
+    let sessionId: string | null = null;
+
+    if (!user) {
+      sessionId = await getSessionId();
+    }
+
+    const existingItem = await CartRepository.findByUserAndProduct(
+      user ? user.id : null,
+      sessionId,
+      productId
+    );
+
+    const newQuantity = (existingItem?.quantity || 0) + quantity;
+
+    if (product.stock < newQuantity) {
+      return {
+        success: false,
+        error: `Yeterli stok yok. Maksimum ${product.stock} adet ekleyebilirsiniz.`,
+      };
+    }
+
     if (user) {
       await CartRepository.addItem({
         userId: user.id,
@@ -110,7 +131,6 @@ export async function addToCart(productId: number, quantity: number = 1): Promis
         quantity,
       });
     } else {
-      const sessionId = await getSessionId();
       await CartRepository.addItem({
         sessionId,
         productId,
@@ -139,6 +159,21 @@ export async function updateCartItemQuantity(cartItemId: number, quantity: numbe
       return {
         success: false,
         error: 'Miktar en az 1 olmalıdır',
+      };
+    }
+
+    const cartItem = await CartRepository.findById(cartItemId);
+    if (!cartItem) {
+      return {
+        success: false,
+        error: 'Sepet öğesi bulunamadı',
+      };
+    }
+
+    if (cartItem.productStock !== null && cartItem.productStock !== undefined && quantity > cartItem.productStock) {
+      return {
+        success: false,
+        error: `Yeterli stok yok. Maksimum ${cartItem.productStock} adet ekleyebilirsiniz.`,
       };
     }
 

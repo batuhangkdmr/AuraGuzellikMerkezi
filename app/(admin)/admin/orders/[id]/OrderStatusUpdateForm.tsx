@@ -102,25 +102,30 @@ export default function OrderStatusUpdateForm({
           </select>
         </div>
 
-        {status === OrderStatus.SHIPPED && (
-          <div>
-            <label htmlFor="trackingNumber" className="block text-sm font-medium text-gray-700 mb-2">
-              Kargo Takip Numarası *
-            </label>
-            <input
-              type="text"
-              id="trackingNumber"
-              value={trackingNumber}
-              onChange={(e) => setTrackingNumber(e.target.value)}
-              placeholder="Örn: ABC123456789"
-              disabled={loading}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Kargo takip numarası zorunludur
+        <div>
+          <label htmlFor="trackingNumber" className="block text-sm font-medium text-gray-700 mb-2">
+            Kargo Takip Numarası {status === OrderStatus.SHIPPED && '*'}
+          </label>
+          <input
+            type="text"
+            id="trackingNumber"
+            value={trackingNumber}
+            onChange={(e) => setTrackingNumber(e.target.value)}
+            placeholder="Örn: ABC123456789"
+            disabled={loading}
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue text-gray-900"
+          />
+          {status === OrderStatus.SHIPPED && (
+            <p className="text-xs text-red-600 mt-1 font-semibold">
+              ⚠️ Kargoya verildi durumu için kargo takip numarası zorunludur
             </p>
-          </div>
-        )}
+          )}
+          {status !== OrderStatus.SHIPPED && trackingNumber && (
+            <p className="text-xs text-gray-500 mt-1">
+              Mevcut takip numarası: <strong>{trackingNumber}</strong>
+            </p>
+          )}
+        </div>
 
         <div>
           <label htmlFor="note" className="block text-sm font-medium text-gray-700 mb-2">

@@ -18,6 +18,7 @@ import {
   getAuthCookie, 
   removeAuthCookie 
 } from '@/lib/auth/cookies';
+import { sendWelcomeEmail } from '@/lib/email';
 
 // Common weak passwords to reject
 const weakPasswords = [
@@ -149,6 +150,14 @@ export async function registerUser(
 
     // Set cookie
     await setAuthCookie(token);
+
+    // Send welcome email (don't fail registration if email fails)
+    try {
+      await sendWelcomeEmail(user.email, user.name);
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // Continue with registration even if email fails
+    }
 
     return {
       success: true,

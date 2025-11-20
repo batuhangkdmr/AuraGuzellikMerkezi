@@ -36,29 +36,94 @@ export class OrderStatusHistoryRepository {
     newStatus: OrderStatus;
     note?: string | null;
   }): Promise<OrderStatusHistory> {
-    const result = await executeQueryOne<{ id: number }>(
-      `INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, note, created_at)
-       OUTPUT INSERTED.id
-       VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @note, GETDATE())`,
-      {
-        orderId: data.orderId,
-        adminUserId: data.adminUserId,
-        oldStatus: data.oldStatus || null,
-        newStatus: data.newStatus,
-        note: data.note || null,
+    // Try with both new_status and status columns (for backward compatibility)
+    // If status column exists, we need to provide a value for it
+    try {
+      const result = await executeQueryOne<{ id: number }>(
+        `INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, status, note, created_at)
+         OUTPUT INSERTED.id
+         VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @status, @note, GETDATE())`,
+        {
+          orderId: data.orderId,
+          adminUserId: data.adminUserId,
+          oldStatus: data.oldStatus || null,
+          newStatus: data.newStatus,
+          status: data.newStatus, // Also set status column with same value
+          note: data.note || null,
+        }
+      );
+
+      if (!result) {
+        throw new Error('Failed to create order status history');
       }
-    );
 
-    if (!result) {
-      throw new Error('Failed to create order status history');
+      const history = await this.findById(result.id);
+      if (!history) {
+        throw new Error('Status history oluşturulamadı');
+      }
+
+      return history;
+    } catch (error: any) {
+      // If status column doesn't exist, try without it
+      if (error.message?.includes('status') || error.message?.includes('Invalid column')) {
+        try {
+          const result = await executeQueryOne<{ id: number }>(
+            `INSERT INTO order_status_history (order_id, admin_user_id, old_status, new_status, note, created_at)
+             OUTPUT INSERTED.id
+             VALUES (@orderId, @adminUserId, @oldStatus, @newStatus, @note, GETDATE())`,
+            {
+              orderId: data.orderId,
+              adminUserId: data.adminUserId,
+              oldStatus: data.oldStatus || null,
+              newStatus: data.newStatus,
+              note: data.note || null,
+            }
+          );
+
+          if (!result) {
+            throw new Error('Failed to create order status history');
+          }
+
+          const history = await this.findById(result.id);
+          if (!history) {
+            throw new Error('Status history oluşturulamadı');
+          }
+
+          return history;
+        } catch (error2: any) {
+          // If new_status doesn't exist either, try with old status column only
+          if (error2.message?.includes('new_status') || error2.message?.includes('Invalid column')) {
+            const result = await executeQueryOne<{ id: number }>(
+              `INSERT INTO order_status_history (order_id, admin_user_id, old_status, status, note, created_at)
+               OUTPUT INSERTED.id
+               VALUES (@orderId, @adminUserId, @oldStatus, @status, @note, GETDATE())`,
+              {
+                orderId: data.orderId,
+                adminUserId: data.adminUserId,
+                oldStatus: data.oldStatus || null,
+                status: data.newStatus, // Use newStatus value for old status column
+                note: data.note || null,
+              }
+            );
+
+            if (!result) {
+              throw new Error('Failed to create order status history');
+            }
+
+            const history = await this.findById(result.id);
+            if (!history) {
+              throw new Error('Status history oluşturulamadı');
+            }
+
+            return history;
+          } else {
+            throw error2;
+          }
+        }
+      } else {
+        throw error;
+      }
     }
-
-    const history = await this.findById(result.id);
-    if (!history) {
-      throw new Error('Failed to retrieve created order status history');
-    }
-
-    return history;
   }
 
   // Find status history by ID

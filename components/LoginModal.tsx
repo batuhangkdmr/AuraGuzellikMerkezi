@@ -67,7 +67,7 @@ export default function LoginModal({ isOpen, onClose, redirectTo }: LoginModalPr
           <button
             type="button"
             onClick={handleLogin}
-            className="flex-1 bg-pink-600 text-white px-4 py-2 rounded-md hover:bg-pink-700 transition font-medium"
+            className="flex-1 bg-primary-blue text-white px-4 py-2 rounded-md hover:bg-primary-blue-dark transition font-medium"
           >
             Giriş Yap
           </button>
@@ -82,7 +82,7 @@ export default function LoginModal({ isOpen, onClose, redirectTo }: LoginModalPr
         <div className="mt-4 text-center">
           <Link
             href="/auth/register"
-            className="text-sm text-pink-600 hover:text-pink-700"
+            className="text-sm text-primary-blue hover:text-primary-blue-dark"
             onClick={handleClose}
           >
             Hesabınız yok mu? Kayıt olun

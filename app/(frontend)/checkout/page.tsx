@@ -4,12 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/app/context/CartContext';
 import { createOrder } from '@/app/server-actions/orderActions';
+import { validateCoupon } from '@/app/server-actions/couponActions';
+import { showToast } from '@/components/ToastContainer';
 
 export default function CheckoutPage() {
   const { items, getTotal, clear } = useCart();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number; couponId: number } | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -62,6 +67,12 @@ export default function CheckoutPage() {
       Object.entries(formData).forEach(([key, value]) => {
         formDataObj.append(key, value);
       });
+
+      // Add coupon if applied
+      if (appliedCoupon) {
+        formDataObj.append('couponId', appliedCoupon.couponId.toString());
+        formDataObj.append('discountAmount', appliedCoupon.discountAmount.toString());
+      }
 
       const result = await createOrder(formDataObj);
 
@@ -123,7 +134,41 @@ export default function CheckoutPage() {
     }
   };
 
-  const total = getTotal();
+  const subtotal = getTotal();
+  const discountAmount = appliedCoupon?.discountAmount || 0;
+  const total = Math.max(0, subtotal - discountAmount);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      showToast('Lütfen bir kupon kodu girin', 'error');
+      return;
+    }
+
+    setIsValidatingCoupon(true);
+    try {
+      const result = await validateCoupon(couponCode.trim(), subtotal);
+      if (result.success && result.data) {
+        setAppliedCoupon({
+          code: couponCode.trim().toUpperCase(),
+          discountAmount: result.data.discountAmount,
+          couponId: result.data.couponId,
+        });
+        showToast('Kupon başarıyla uygulandı!', 'success');
+        setCouponCode('');
+      } else {
+        showToast(result.error || 'Kupon geçersiz', 'error');
+      }
+    } catch (error) {
+      showToast('Kupon doğrulanırken bir hata oluştu', 'error');
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+  };
 
   if (items.length === 0) {
     return (
@@ -368,8 +413,71 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              <div className="border-t pt-4">
-                <div className="flex justify-between text-xl font-bold text-gray-900">
+              {/* Coupon Section */}
+              <div className="border-t pt-4 mb-4">
+                {appliedCoupon ? (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-green-800">
+                        Kupon: {appliedCoupon.code}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-red-600 hover:text-red-800 text-sm font-semibold"
+                      >
+                        Kaldır
+                      </button>
+                    </div>
+                    <div className="text-lg font-bold text-green-700">
+                      -{appliedCoupon.discountAmount.toFixed(2)} ₺
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-3">
+                    <label htmlFor="couponCode" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Kupon Kodu
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        id="couponCode"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="KUPON KODU"
+                        className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-yellow focus:border-accent-yellow text-sm font-semibold uppercase"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyCoupon();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={isValidatingCoupon || !couponCode.trim()}
+                        className="px-4 py-2 bg-accent-yellow text-primary-blue-dark rounded-lg hover:bg-accent-yellow-light transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isValidatingCoupon ? '...' : 'Uygula'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t pt-4 space-y-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Ara Toplam</span>
+                  <span>{subtotal.toFixed(2)} ₺</span>
+                </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-sm text-green-600 font-semibold">
+                    <span>İndirim</span>
+                    <span>-{discountAmount.toFixed(2)} ₺</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t">
                   <span>Toplam</span>
                   <span>{total.toFixed(2)} ₺</span>
                 </div>

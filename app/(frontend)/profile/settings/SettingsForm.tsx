@@ -55,6 +55,52 @@ export default function SettingsForm({ user }: SettingsFormProps) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Şifre Değiştirme Bölümü */}
+        <div className="border-t-2 border-gray-200 pt-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Şifre Değiştir</h3>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Mevcut Şifre
+              </label>
+              <input
+                type="password"
+                id="currentPassword"
+                name="currentPassword"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+                placeholder="Mevcut şifrenizi girin"
+              />
+            </div>
+            <div>
+              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Yeni Şifre
+              </label>
+              <input
+                type="password"
+                id="newPassword"
+                name="newPassword"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+                placeholder="Yeni şifrenizi girin (min 8 karakter)"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Şifre en az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermelidir
+              </p>
+            </div>
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Yeni Şifre Tekrar
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+                placeholder="Yeni şifrenizi tekrar girin"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Ad Soyad */}
         <div>
           <label htmlFor="name" className="block text-gray-700 font-medium mb-2">

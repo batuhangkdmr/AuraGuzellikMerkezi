@@ -3,6 +3,7 @@ import { getAuthCookie } from '@/lib/auth/cookies';
 import { verifyToken } from '@/lib/auth/auth';
 import { UserRepository } from '@/lib/repositories/UserRepository';
 import LogoutButton from './LogoutButton';
+import Sidebar from './components/Sidebar';
 
 export default async function AdminLayout({
   children,
@@ -42,45 +43,34 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Admin Navbar */}
-      <nav className="bg-gray-900 text-white">
-        <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Admin Top Navbar */}
+      <nav className="bg-primary-blue text-white shadow-lg border-b-2 border-accent-yellow sticky top-0 z-50">
+        <div className="px-4">
           <div className="flex justify-between items-center h-16">
-            <Link href="/admin" className="text-xl font-bold">
-              Aura Admin Panel
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link href="/admin" className="text-xl font-extrabold hover:text-accent-yellow transition">
+                🏢 New Holland Admin
+              </Link>
+            </div>
             
-            <div className="flex items-center space-x-6">
-              <Link href="/admin" className="hover:text-pink-400 transition">
-                Dashboard
-              </Link>
-              <Link href="/admin/categories" className="hover:text-pink-400 transition">
-                Kategoriler
-              </Link>
-              <Link href="/admin/products" className="hover:text-pink-400 transition">
-                Ürünler
-              </Link>
-              <Link href="/admin/attributes" className="hover:text-pink-400 transition">
-                Ürün Özellikleri
-              </Link>
-              <Link href="/admin/orders" className="hover:text-pink-400 transition">
-                Siparişler
-              </Link>
-              <Link href="/admin/reports" className="hover:text-pink-400 transition">
-                Raporlar
-              </Link>
-              <Link href="/admin/randevular" className="hover:text-pink-400 transition">
-                Randevular
-              </Link>
-              <Link href="/" className="hover:text-pink-400 transition">
-                Siteye Dön
+            <div className="flex items-center space-x-4">
+              <Link 
+                href="/" 
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition text-sm font-semibold"
+              >
+                🌐 Siteye Dön
               </Link>
               
               {/* User Info & Logout */}
-              <div className="flex items-center space-x-4 ml-4 pl-4 border-l border-gray-700">
-                <span className="text-sm text-gray-300">
-                  👤 {user?.name || user?.email}
+              <div className="flex items-center space-x-3 ml-4 pl-4 border-l border-white/20">
+                <div className="w-8 h-8 bg-accent-yellow/20 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-bold text-accent-yellow">
+                    {user?.name?.charAt(0).toUpperCase() || 'A'}
+                  </span>
+                </div>
+                <span className="text-sm font-medium hidden sm:block">
+                  {user?.name || user?.email}
                 </span>
                 <LogoutButton />
               </div>
@@ -88,11 +78,16 @@ export default async function AdminLayout({
           </div>
         </div>
       </nav>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <Sidebar />
       
-      {/* Admin Content */}
-      <main className="container mx-auto px-4 py-8">
-        {children}
-      </main>
+        {/* Main Content */}
+        <main className="flex-1 p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

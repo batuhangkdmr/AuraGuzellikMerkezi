@@ -60,8 +60,8 @@ export default function AllCategoriesMenu({ categories }: AllCategoriesMenuProps
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* TÜM KATEGORİLER Button */}
-      <button className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-pink-600 transition-colors border-r border-gray-200 h-full">
+      {/* TÜM KATEGORİLER Button - White Text */}
+      <button className="flex items-center space-x-2 px-5 py-3 text-sm font-bold text-white hover:bg-primary-blue-dark hover:text-accent-yellow transition-all border-r-2 border-white/20 h-full">
         <svg
           className="w-5 h-5"
           fill="none"
@@ -107,8 +107,8 @@ export default function AllCategoriesMenu({ categories }: AllCategoriesMenuProps
                         href={`/products?category=${category.slug}`}
                         className={`flex items-center justify-between px-3 py-2.5 text-sm transition-colors ${
                           isSelected
-                            ? 'text-pink-600 font-medium'
-                            : 'text-gray-700 hover:text-pink-600 hover:bg-white'
+                            ? 'text-primary-blue font-medium'
+                            : 'text-gray-700 hover:text-primary-blue hover:bg-white'
                         }`}
                       >
                         <span className="flex items-center space-x-2">
@@ -154,7 +154,7 @@ export default function AllCategoriesMenu({ categories }: AllCategoriesMenuProps
                 <div className="mb-4 pb-3 border-b border-gray-200">
                   <Link
                     href={`/products?category=${selectedCategory.slug}`}
-                    className="text-xl font-bold text-gray-900 hover:text-pink-600 transition-colors"
+                    className="text-xl font-bold text-gray-900 hover:text-primary-blue transition-colors"
                   >
                     {selectedCategory.name}
                   </Link>
@@ -168,7 +168,7 @@ export default function AllCategoriesMenu({ categories }: AllCategoriesMenuProps
                         {/* Subcategory Header */}
                         <Link
                           href={`/products?category=${subcategory.slug}`}
-                          className="block font-semibold text-gray-900 hover:text-pink-600 transition-colors text-sm border-b border-gray-200 pb-2"
+                          className="block font-semibold text-gray-900 hover:text-primary-blue transition-colors text-sm border-b border-gray-200 pb-2"
                         >
                           {subcategory.name}
                         </Link>
@@ -180,7 +180,7 @@ export default function AllCategoriesMenu({ categories }: AllCategoriesMenuProps
                               <li key={childCategory.id}>
                                 <Link
                                   href={`/products?category=${childCategory.slug}`}
-                                  className="block text-xs text-gray-600 hover:text-pink-600 transition-colors py-1"
+                                  className="block text-xs text-gray-600 hover:text-primary-blue transition-colors py-1"
                                 >
                                   {childCategory.name}
                                 </Link>
@@ -199,7 +199,7 @@ export default function AllCategoriesMenu({ categories }: AllCategoriesMenuProps
                     </p>
                     <Link
                       href={`/products?category=${selectedCategory.slug}`}
-                      className="mt-4 inline-block text-pink-600 hover:text-pink-700 text-sm font-medium"
+                      className="mt-4 inline-block text-primary-blue hover:text-primary-blue-dark text-sm font-medium"
                     >
                       {selectedCategory.name} kategorisindeki ürünleri görüntüle →
                     </Link>

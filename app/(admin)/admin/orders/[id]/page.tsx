@@ -101,7 +101,17 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                 {order.trackingNumber && (
                   <div className="col-span-2">
                     <p className="text-sm text-gray-600">Kargo Takip Numarası</p>
-                    <p className="font-semibold text-gray-900">{order.trackingNumber}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-primary-blue text-lg">{order.trackingNumber}</p>
+                      <a
+                        href={`https://www.google.com/search?q=${encodeURIComponent(order.trackingNumber)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2 py-1 bg-accent-yellow text-primary-blue-dark rounded text-xs font-bold hover:bg-accent-yellow-light transition-all"
+                      >
+                        Takip Et
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
