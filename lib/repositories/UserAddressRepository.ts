@@ -129,6 +129,10 @@ export class UserAddressRepository {
       }
     );
 
+    if (!result) {
+      throw new Error('Address oluşturulamadı');
+    }
+
     const address = await this.findById(result.id);
     if (!address) {
       throw new Error('Address oluşturulamadı');
