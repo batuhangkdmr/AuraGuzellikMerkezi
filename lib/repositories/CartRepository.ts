@@ -13,6 +13,7 @@ export interface CartItem {
   productName?: string;
   productPrice?: number;
   productImages?: string | null;
+  productStock?: number | null;
 }
 
 export class CartRepository {
@@ -21,7 +22,8 @@ export class CartRepository {
     return await executeQuery<CartItem>(
       `SELECT ci.id, ci.user_id as userId, ci.session_id as sessionId, 
               ci.product_id as productId, ci.quantity, ci.created_at as createdAt,
-              p.name as productName, p.price as productPrice, p.images as productImages
+              p.name as productName, p.price as productPrice, p.images as productImages,
+              p.stock as productStock
        FROM cart_items ci
        INNER JOIN products p ON ci.product_id = p.id
        WHERE ci.user_id = @userId
@@ -35,7 +37,8 @@ export class CartRepository {
     return await executeQuery<CartItem>(
       `SELECT ci.id, ci.user_id as userId, ci.session_id as sessionId, 
               ci.product_id as productId, ci.quantity, ci.created_at as createdAt,
-              p.name as productName, p.price as productPrice, p.images as productImages
+              p.name as productName, p.price as productPrice, p.images as productImages,
+              p.stock as productStock
        FROM cart_items ci
        INNER JOIN products p ON ci.product_id = p.id
        WHERE ci.session_id = @sessionId
@@ -119,6 +122,20 @@ export class CartRepository {
       { id, quantity }
     );
     return rowsAffected > 0;
+  }
+
+  // Find cart item by id with product data
+  static async findById(id: number): Promise<CartItem | null> {
+    return await executeQueryOne<CartItem>(
+      `SELECT ci.id, ci.user_id as userId, ci.session_id as sessionId,
+              ci.product_id as productId, ci.quantity, ci.created_at as createdAt,
+              p.name as productName, p.price as productPrice, p.images as productImages,
+              p.stock as productStock
+       FROM cart_items ci
+       INNER JOIN products p ON ci.product_id = p.id
+       WHERE ci.id = @id`,
+      { id }
+    );
   }
 
   // Remove item from cart

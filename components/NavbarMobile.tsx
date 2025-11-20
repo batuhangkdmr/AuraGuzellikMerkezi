@@ -15,7 +15,7 @@ export default function NavbarMobile({ categories }: NavbarMobileProps) {
     <>
       <button
         onClick={() => setIsMenuOpen(true)}
-        className="p-2 text-gray-700 hover:text-pink-600 hover:bg-gray-100 rounded-lg transition-colors"
+        className="p-2 text-white hover:text-accent-yellow hover:bg-primary-blue-dark rounded-lg transition-colors"
         aria-label="Menüyü Aç"
       >
         <svg

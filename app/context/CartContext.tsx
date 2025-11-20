@@ -11,6 +11,7 @@ interface CartItem {
     name: string;
     price: number;
     images: string[];
+    stock: number;
   };
 }
 
@@ -88,19 +89,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   // Update item quantity
-  const updateQuantity = useCallback(async (cartItemId: number, quantity: number) => {
-    if (quantity < 1) {
-      await removeItem(cartItemId);
-      return;
-    }
+  const updateQuantity = useCallback(
+    async (cartItemId: number, quantity: number) => {
+      if (quantity < 1) {
+        await removeItem(cartItemId);
+        return;
+      }
 
-    const result = await updateCartItemQuantity(cartItemId, quantity);
-    if (result.success) {
-      await refresh();
-    } else {
-      throw new Error(result.error || 'Failed to update item quantity');
-    }
-  }, [refresh, removeItem]);
+      // Optimistic update to avoid full re-render
+      setItems(prev => {
+        const updated = prev.map(item =>
+          item.id === cartItemId ? { ...item, quantity } : item
+        );
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
+
+      const result = await updateCartItemQuantity(cartItemId, quantity);
+      if (!result.success) {
+        // Revert via refresh if server validation failed
+        await refresh();
+        throw new Error(result.error || 'Failed to update item quantity');
+      }
+    },
+    [refresh, removeItem]
+  );
 
   // Clear cart
   const clear = useCallback(async () => {

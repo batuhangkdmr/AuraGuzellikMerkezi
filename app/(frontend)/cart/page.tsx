@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser } from '@/app/auth/actions';
+import { showToast } from '@/components/ToastContainer';
 
 export default function CartPage() {
   const { items, isLoading, removeItem, updateQuantity, getTotal, getItemCount } = useCart();
@@ -72,6 +73,8 @@ export default function CartPage() {
           <div className="lg:col-span-2 space-y-4">
             {items.map((item) => {
               const mainImage = item.product.images[0] || '/placeholder-image.svg';
+              const availableStock = item.product.stock ?? 0;
+              const isOutOfStock = availableStock <= 0;
 
               return (
                 <div
@@ -92,8 +95,11 @@ export default function CartPage() {
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
                       {item.product.name}
                     </h3>
-                    <p className="text-pink-600 font-bold mb-4">
+                    <p className="text-pink-600 font-bold mb-2">
                       {item.product.price.toFixed(2)} ₺
+                    </p>
+                    <p className={`text-sm mb-4 ${isOutOfStock ? 'text-red-600' : 'text-gray-600'}`}>
+                      {isOutOfStock ? 'Stokta yok' : `Stokta ${availableStock} adet var`}
                     </p>
 
                     <div className="flex items-center gap-4">
@@ -104,14 +110,24 @@ export default function CartPage() {
                         id={`quantity-${item.id}`}
                         type="number"
                         min="1"
+                        max={availableStock > 0 ? availableStock : undefined}
                         value={item.quantity}
+                        disabled={isOutOfStock}
                         onChange={(e) => {
                           const qty = parseInt(e.target.value, 10);
-                          if (!isNaN(qty) && qty >= 1) {
+                          if (isNaN(qty) || qty < 1) return;
+
+                          if (!isOutOfStock && availableStock > 0 && qty > availableStock) {
+                            showToast(`En fazla ${availableStock} adet sipariş verebilirsiniz`, 'error');
+                            updateQuantity(item.id, availableStock);
+                            return;
+                          }
+
+                          if (!isOutOfStock) {
                             updateQuantity(item.id, qty);
                           }
                         }}
-                        className="w-20 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        className={`w-20 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
                       />
                       <button
                         onClick={() => removeItem(item.id)}

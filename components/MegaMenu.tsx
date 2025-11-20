@@ -36,8 +36,8 @@ export default function MegaMenu({ categories }: MegaMenuProps) {
                   href={`/products?category=${category.slug}`}
                   className={`block px-4 py-3 text-sm font-medium transition-colors relative ${
                     isHovered 
-                      ? 'text-pink-600 border-b-2 border-pink-600' 
-                      : 'text-gray-700 hover:text-pink-600'
+                      ? 'text-accent-yellow border-b-2 border-accent-yellow' 
+                      : 'text-white hover:text-accent-yellow'
                   }`}
                 >
                   {category.name}
@@ -67,7 +67,7 @@ export default function MegaMenu({ categories }: MegaMenuProps) {
                       <div className="mb-4 pb-3 border-b border-gray-200">
                         <Link
                           href={`/products?category=${category.slug}`}
-                          className="text-xl font-bold text-gray-900 hover:text-pink-600 transition-colors"
+                          className="text-xl font-bold text-gray-900 hover:text-primary-blue transition-colors"
                           onClick={() => setHoveredCategory(null)}
                         >
                           {category.name}
@@ -83,7 +83,7 @@ export default function MegaMenu({ categories }: MegaMenuProps) {
                               {/* Subcategory Header */}
                               <Link
                                 href={`/products?category=${subcategory.slug}`}
-                                className="block font-semibold text-gray-900 hover:text-pink-600 transition-colors text-sm border-b border-gray-200 pb-2"
+                                className="block font-semibold text-gray-900 hover:text-primary-blue transition-colors text-sm border-b border-gray-200 pb-2"
                                 onClick={() => setHoveredCategory(null)}
                               >
                                 {subcategory.name}
@@ -96,7 +96,7 @@ export default function MegaMenu({ categories }: MegaMenuProps) {
                                     <li key={childCategory.id}>
                                       <Link
                                         href={`/products?category=${childCategory.slug}`}
-                                        className="block text-xs text-gray-600 hover:text-pink-600 transition-colors py-1"
+                                        className="block text-xs text-gray-600 hover:text-primary-blue transition-colors py-1"
                                         onClick={() => setHoveredCategory(null)}
                                       >
                                         {childCategory.name}

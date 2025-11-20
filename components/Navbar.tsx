@@ -7,6 +7,7 @@ import SearchBar from './SearchBar';
 import NavbarClient from './NavbarClient';
 import AllCategoriesMenuServer from './AllCategoriesMenuServer';
 import NavbarMobile from './NavbarMobile';
+import LoginRegisterButtons from './LoginRegisterButtons';
 
 export default async function Navbar() {
   const user = await getCurrentUser();
@@ -15,15 +16,15 @@ export default async function Navbar() {
 
   return (
     <>
-      {/* Utility Bar - Top Links (Desktop Only) */}
-      <div className="hidden lg:block bg-gray-100 border-b border-gray-200">
+      {/* Utility Bar - Top Links (Desktop Only) - White Text */}
+      <div className="hidden lg:block bg-primary-blue-dark border-b-2 border-accent-yellow shadow-lg">
         <div className="container mx-auto px-4">
-          <div className="flex justify-end items-center h-8 text-xs text-gray-600">
-            <div className="flex items-center space-x-4">
-              <Link href="/hakkimizda" className="hover:text-pink-600 transition">
+          <div className="flex justify-end items-center h-10 text-sm">
+            <div className="flex items-center space-x-6">
+              <Link href="/hakkimizda" className="text-white hover:text-accent-yellow transition font-semibold hover:underline decoration-accent-yellow">
                 Hakkımızda
               </Link>
-              <Link href="/iletisim" className="hover:text-pink-600 transition">
+              <Link href="/iletisim" className="text-white hover:text-accent-yellow transition font-semibold hover:underline decoration-accent-yellow">
                 Yardım & Destek
               </Link>
             </div>
@@ -31,23 +32,23 @@ export default async function Navbar() {
         </div>
       </div>
 
-      {/* Main Navbar */}
-      <nav className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
+      {/* Main Navbar - Modern Design with Yellow Accents */}
+      <nav className="bg-primary-blue shadow-2xl sticky top-0 z-50 border-b-4 border-accent-yellow">
         <div className="container mx-auto px-3 sm:px-4">
           {/* Mobile Layout */}
-          <div className="lg:hidden flex items-center justify-between h-14">
+          <div className="lg:hidden flex items-center justify-between h-16">
             {/* Mobile Menu Button & Logo */}
-            <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="flex items-center space-x-3 flex-shrink-0">
               <NavbarMobile categories={categories} />
-              <Link href="/" className="text-xl font-bold text-pink-600">
-                Aura Güzellik
+              <Link href="/" className="text-xl font-extrabold text-white drop-shadow-lg hover:text-accent-yellow transition">
+                New Holland
               </Link>
             </div>
 
             {/* Mobile Search Icon */}
             <Link
               href="/products"
-              className="p-2 text-gray-700 hover:text-pink-600 transition-colors"
+              className="p-2.5 text-white hover:text-accent-yellow hover:bg-primary-blue-dark rounded-lg transition-all"
               aria-label="Ara"
             >
               <svg
@@ -59,7 +60,7 @@ export default async function Navbar() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
@@ -70,57 +71,51 @@ export default async function Navbar() {
               {user ? (
                 <NavbarClient user={user} />
               ) : (
-                <Link
-                  href="/auth/login"
-                  className="text-sm text-gray-700 hover:text-pink-600 transition font-medium"
-                >
-                  Giriş
-                </Link>
+                <LoginRegisterButtons variant="mobile" />
               )}
             </div>
           </div>
 
           {/* Desktop Layout */}
-          <div className="hidden lg:flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link href="/" className="text-2xl font-bold text-pink-600 flex-shrink-0">
-              Aura Güzellik
+          <div className="hidden lg:flex items-center justify-between h-20">
+            {/* Logo - White Text */}
+            <Link href="/" className="flex items-center space-x-3 flex-shrink-0 group">
+              <div className="bg-accent-yellow/20 rounded-lg p-2 group-hover:bg-accent-yellow/30 transition">
+                <span className="text-3xl font-extrabold text-white drop-shadow-lg group-hover:text-accent-yellow transition">
+                  NH
+                </span>
+              </div>
+              <div>
+                <div className="text-2xl font-extrabold text-white drop-shadow-lg leading-tight group-hover:text-accent-yellow transition">
+                  New Holland
+                </div>
+                <div className="text-xs text-white/90 font-semibold">
+                  Yedek Parça Bayi
+                </div>
+              </div>
             </Link>
 
-            {/* Search Bar */}
-            <div className="flex-1 max-w-2xl mx-6">
+            {/* Search Bar - Enhanced */}
+            <div className="flex-1 max-w-2xl mx-8">
               <SearchBar />
             </div>
 
-            {/* User Actions */}
-            <div className="flex items-center space-x-4 flex-shrink-0">
+            {/* User Actions - Enhanced */}
+            <div className="flex items-center gap-2 flex-shrink-0">
               {user ? (
                 <NavbarClient user={user} />
               ) : (
-                <div className="flex items-center space-x-3">
-                  <Link
-                    href="/auth/login"
-                    className="text-gray-700 hover:text-pink-600 transition font-medium text-sm"
-                  >
-                    Giriş Yap
-                  </Link>
-                  <Link
-                    href="/auth/register"
-                    className="bg-pink-600 text-white px-4 py-2 rounded-md hover:bg-pink-700 transition text-sm"
-                  >
-                    Kayıt Ol
-                  </Link>
-                </div>
+                <LoginRegisterButtons variant="desktop" />
               )}
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Category Menu Bar (Desktop Only) */}
-      <div className="hidden lg:block bg-white border-t border-gray-200 sticky top-16 z-40">
+      {/* Category Menu Bar (Desktop Only) - Enhanced Design */}
+      <div className="hidden lg:block bg-primary-blue-dark border-t-4 border-accent-yellow sticky top-[80px] z-40 shadow-lg">
         <div className="container mx-auto px-4">
-          <div className="flex items-center h-12">
+          <div className="flex items-center h-14">
             {/* TÜM KATEGORİLER Button with Mega Menu */}
             <AllCategoriesMenuServer />
 

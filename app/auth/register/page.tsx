@@ -4,12 +4,12 @@ import Link from 'next/link';
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500 px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-blue to-primary-blue-dark px-4 py-12">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8">
         {/* Logo / Başlık */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Aura Güzellik
+            New Holland
           </h1>
           <p className="text-gray-600">Yeni kullanıcı veya yönetici hesabı oluştur</p>
         </div>
@@ -21,7 +21,7 @@ export default function RegisterPage() {
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Zaten hesabınız var mı?{' '}
-            <Link href="/auth/login" className="text-purple-600 hover:text-purple-700 font-semibold">
+            <Link href="/auth/login" className="text-primary-blue hover:text-primary-blue-dark font-semibold">
               Giriş Yap
             </Link>
           </p>

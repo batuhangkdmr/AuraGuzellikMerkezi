@@ -77,7 +77,7 @@ export default function MobileMenu({ categories, isOpen, onClose }: MobileMenuPr
                   <div key={category.id} className="mb-1">
                     <div
                       className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
-                        isActive ? 'bg-pink-50 text-pink-600' : 'hover:bg-gray-50'
+                        isActive ? 'bg-pink-50 text-primary-blue' : 'hover:bg-gray-50'
                       }`}
                       onClick={() => setActiveCategory(isActive ? null : category.id)}
                     >
@@ -114,7 +114,7 @@ export default function MobileMenu({ categories, isOpen, onClose }: MobileMenuPr
                           <div key={subcategory.id}>
                             <Link
                               href={`/products?category=${subcategory.slug}`}
-                              className="block p-2 text-sm text-gray-700 hover:text-pink-600 hover:bg-pink-50 rounded-lg transition-colors"
+                              className="block p-2 text-sm text-gray-700 hover:text-primary-blue hover:bg-pink-50 rounded-lg transition-colors"
                               onClick={onClose}
                             >
                               {subcategory.name}
@@ -126,7 +126,7 @@ export default function MobileMenu({ categories, isOpen, onClose }: MobileMenuPr
                                   <Link
                                     key={child.id}
                                     href={`/products?category=${child.slug}`}
-                                    className="block p-2 text-xs text-gray-600 hover:text-pink-600 hover:bg-pink-50 rounded-lg transition-colors"
+                                    className="block p-2 text-xs text-gray-600 hover:text-primary-blue hover:bg-pink-50 rounded-lg transition-colors"
                                     onClick={onClose}
                                   >
                                     {child.name}
@@ -148,14 +148,14 @@ export default function MobileMenu({ categories, isOpen, onClose }: MobileMenuPr
           <div className="border-t border-gray-200 p-4 space-y-2">
             <Link
               href="/hakkimizda"
-              className="block py-2 text-gray-700 hover:text-pink-600 transition-colors"
+              className="block py-2 text-gray-700 hover:text-primary-blue transition-colors"
               onClick={onClose}
             >
               Hakkımızda
             </Link>
             <Link
               href="/iletisim"
-              className="block py-2 text-gray-700 hover:text-pink-600 transition-colors"
+              className="block py-2 text-gray-700 hover:text-primary-blue transition-colors"
               onClick={onClose}
             >
               Yardım & Destek

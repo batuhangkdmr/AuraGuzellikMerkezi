@@ -142,8 +142,8 @@ export default function FavoriteButton({
           disabled={isLoading}
           className={`${sizeClasses[size]} flex items-center justify-center transition-colors ${
             favorited 
-              ? 'text-pink-600 hover:text-pink-700' 
-              : 'text-gray-400 hover:text-pink-600'
+              ? 'text-accent-yellow hover:text-accent-yellow-dark' 
+              : 'text-gray-400 hover:text-accent-yellow'
           } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           title={favorited ? 'Favorilerden çıkar' : 'Favorilere ekle'}
         >

@@ -150,7 +150,7 @@ export default function ImageUpload({
           className={`px-4 py-2 rounded-md font-medium transition-colors ${
             uploading || images.length >= maxImages
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-pink-600 text-white hover:bg-pink-700'
+              : 'bg-primary-blue text-white hover:bg-primary-blue-dark'
           }`}
         >
           {uploading ? 'Yükleniyor...' : '+ Görsel Yükle'}
@@ -196,7 +196,7 @@ export default function ImageUpload({
                 </svg>
               </button>
               {index === 0 && (
-                <div className="absolute bottom-2 left-2 bg-pink-600 text-white text-xs px-2 py-1 rounded">
+                <div className="absolute bottom-2 left-2 bg-primary-blue text-white text-xs px-2 py-1 rounded">
                   Ana Görsel
                 </div>
               )}
